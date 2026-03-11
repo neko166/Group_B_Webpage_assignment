@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Page 3</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <style>
+        .section-panel {
+            background-color: var(--mono-100);
+            padding: var(--space-4);
+            border-radius: var(--radius-m);
+            margin-bottom: var(--space-3);
+            border: var(--border-standard);
+        }
+
+        .text-data {
+            font-size: var(--fs-data);
+            color: var(--mono-300);
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <main class="l-container">
+        <section class="section-panel">
+            <h2>Sample 3: ネストカード</h2>
+            <p>カード内カードの構造サンプルです。</p>
+
+            <div class="c-card mt-3">
+                <h3 class="c-card__title">親カード</h3>
+                <p>説明情報を表示します。</p>
+
+                <div class="c-card c-card--nested mt-3">
+                    <h4 class="c-card__title">子カード</h4>
+                    <p class="text-data">詳細情報や補足メモを表示します。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+</body>
+</html>

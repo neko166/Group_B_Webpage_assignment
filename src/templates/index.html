@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# 1. 変数の展開: Pythonから渡されたpage_titleを表示 #}
+    <title>{{ page_title }}</title>
+
+    {# 4. url_forを使った静的ファイルの読み込み #}
+    {# 注: main.pyでStaticFilesをマウントしている必要があります #}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <style>
+        .section-panel {
+            background-color: var(--mono-100);
+            padding: var(--space-4);
+            border-radius: var(--radius-m);
+            margin-bottom: var(--space-3);
+            border: var(--border-standard);
+        }
+        .item-list {
+            list-style: none;
+            padding: 0;
+        }
+        .item-list li {
+            padding: var(--space-1) 0;
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <main class="l-container">
+        <section class="section-panel">
+            {# 変数の展開 #}
+            <h2>{{ page_title }}</h2>
+
+            {# 2. 条件分岐 (if / else) #}
+            {% if current_user %}
+                <p>ようこそ、 {{ current_user.name }} さん！</p>
+            {% else %}
+                <p>ようこそ、ゲストさん！</p>
+            {% endif %}
+        </section>
+
+        <section class="section-panel">
+            <h3>3. ループ処理 (for)</h3>
+            <p>Pythonから渡されたリストを表示します。</p>
+            <ul class="item-list mt-2">
+                {% for item in items %}
+                    <li>ID: {{ item.id }} - {{ item.name }}</li>
+                {% else %}
+                    <li>アイテムがありません。</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="section-panel">
+            <h3>4. URLの動的生成 (url_for)</h3>
+            <p>エンドポイント名からURLを生成します。</p>
+            <a href="{{ url_for('read_root') }}">このページ (index.html) へのリンク</a><br>
+            <a href="{{ url_for('read_test') }}">テストページ (test.html) へ</a>
+        </section>
+
+    </main>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+</body>
+</html>
