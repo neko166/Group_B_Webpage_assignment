@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Page 1</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <style>
+        .section-panel {
+            background-color: var(--mono-100);
+            padding: var(--space-4);
+            border-radius: var(--radius-m);
+            margin-bottom: var(--space-3);
+            border: var(--border-standard);
+        }
+
+        .sample-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .text-data {
+            font-size: var(--fs-data);
+            color: var(--mono-300);
+        }
+
+        @media (max-width: 900px) {
+            .sample-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <main class="l-container">
+        <section class="section-panel">
+            <h2>Sample 1: カード一覧</h2>
+            <p>共通の style.css を適用したサンプルページです。</p>
+        </section>
+
+        <div class="sample-grid">
+            <div class="c-card">
+                <h3 class="c-card__title">売上サマリー</h3>
+                <p class="text-data">月間売上: 1,240,000円</p>
+            </div>
+            <div class="c-card">
+                <h3 class="c-card__title">新規ユーザー</h3>
+                <p class="text-data">投稿数: 128件</p>
+            </div>
+        </div>
+    </main>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+</body>
+</html>

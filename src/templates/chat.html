@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <style>
+        .chat-page {
+            height: calc(100vh - 170px - var(--footer-height));
+            padding-bottom: var(--space-3);
+            display: flex;
+        }
+
+        .chat-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .chat-log {
+            background-color: var(--mono-100);
+            border: var(--border-standard);
+            border-radius: var(--radius-m);
+            padding: var(--space-3);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            gap: var(--space-2);
+            overflow-y: auto;
+        }
+
+        .chat-row {
+            display: flex;
+        }
+
+        .chat-row--user {
+            justify-content: flex-end;
+        }
+
+        .chat-row--assistant {
+            justify-content: flex-start;
+        }
+
+        .chat-bubble {
+            max-width: min(80%, 720px);
+            border-radius: var(--radius-m);
+            padding: var(--space-2) var(--space-3);
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: var(--border-standard);
+        }
+
+        .chat-bubble--user {
+            background-color: var(--accent-2);
+            border-color: var(--accent-1);
+            color: var(--mono-400);
+        }
+
+        .chat-bubble--assistant {
+            background-color: var(--mono-100);
+            color: var(--mono-400);
+        }
+
+        .chat-composer {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: end;
+            gap: var(--space-2);
+            margin-top: var(--space-2);
+        }
+
+        .chat-input {
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+        }
+
+        .chat-send-btn {
+            padding: 6px 12px;
+            font-size: var(--fs-data);
+            line-height: 1.2;
+            min-width: 72px;
+            background-color: var(--accent-1);
+            color: var(--mono-100);
+            border: none;
+        }
+
+        @media (max-width: 900px) {
+            .chat-page {
+                height: calc(100vh - 90px - var(--footer-height));
+            }
+
+            .chat-bubble {
+                max-width: 100%;
+            }
+
+            .chat-composer {
+                grid-template-columns: 1fr;
+            }
+
+            .chat-send-btn {
+                justify-self: end;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <main class="l-container chat-page">
+        <section class="c-card chat-panel">
+            <h2 class="c-card__title">AIチャット</h2>
+            <section id="chat-log" class="chat-log" aria-label="チャットログ"></section>
+            <form id="chat-form" class="chat-composer" novalidate>
+                <textarea id="chat-input" class="chat-input" name="chat-input" rows="2" placeholder="メッセージを入力（Enterで送信 / Shift+Enterで改行）" required></textarea>
+                <button id="send-button" type="submit" class="btn chat-send-btn">送信</button>
+            </form>
+        </section>
+    </main>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatLog = document.getElementById('chat-log');
+            const form = document.getElementById('chat-form');
+            const input = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-button');
+
+            const API_TYPE = 'general';
+            const API_CONFIG = {
+                baseUrl: 'http://localhost:3000',
+                endpointMap: {
+                    general: '/api/chat/general',
+                    summary: '/api/chat/summary',
+                    translation: '/api/chat/translation'
+                }
+            };
+
+            const appendMessage = (role, text) => {
+                const row = document.createElement('div');
+                row.className = `chat-row chat-row--${role}`;
+
+                const bubble = document.createElement('div');
+                bubble.className = `chat-bubble chat-bubble--${role}`;
+                bubble.textContent = text;
+
+                row.appendChild(bubble);
+                chatLog.appendChild(row);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            };
+
+            const submitMessage = async () => {
+                const message = input.value.trim();
+                if (!message) {
+                    input.focus();
+                    return;
+                }
+
+                appendMessage('user', message);
+                input.value = '';
+                sendButton.disabled = true;
+
+                try {
+                    const data = await App.chatApi.request({
+                        apiType: API_TYPE,
+                        message,
+                        endpointMap: API_CONFIG.endpointMap,
+                        baseUrl: API_CONFIG.baseUrl,
+                        bodyBuilder: ({ apiType, message: requestMessage }) => ({
+                            apiType,
+                            message: requestMessage
+                        })
+                    });
+
+                    appendMessage('assistant', App.chatApi.getAssistantText(data));
+                } catch (error) {
+                    appendMessage('assistant', `エラー: ${error.message}`);
+                    console.error(error);
+                } finally {
+                    sendButton.disabled = false;
+                    input.focus();
+                }
+            };
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                await submitMessage();
+            });
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    form.requestSubmit();
+                }
+            });
+
+            appendMessage('assistant', 'チャットを開始しました。メッセージを入力してください。');
+        });
+    </script>
+</body>
+</html>

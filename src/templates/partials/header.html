@@ -1,0 +1,80 @@
+<style>
+    .site-header {
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .site-header .l-container {
+        padding-left: 0;
+    }
+
+    .site-header__inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        height: 60px;
+    }
+
+    .site-logo-wrap {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .site-title {
+        font-size: var(--fs-h3);
+        font-weight: 500;
+        color: var(--mono-100);
+    }
+
+    .site-logo {
+        display: block;
+        width: auto;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        flex-shrink: 0;
+    }
+
+    .site-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        justify-content: flex-end;
+    }
+
+    .site-nav__link {
+        display: inline-block;
+        padding: var(--space-1) var(--space-3);
+        border: var(--border-standard);
+        border-radius: var(--radius-s);
+        background-color: var(--mono-100);
+        font-size: var(--fs-data);
+        font-weight: bold;
+    }
+
+    @media (max-width: 900px) {
+        .site-header__inner {
+            height: 72px;
+        }
+    }
+</style>
+<header class="site-header">
+    <div class="l-container site-header__inner">
+        <div class="site-logo-wrap" aria-label="Project Logo">
+            <svg class="site-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 253">
+                <path fill="#e63200" d="M0 0 L119 0 L119 67 L42 127 L119 185 L119 252 L0 252 L0 185 L42 185 L42 67 L0 67 Z"/>
+            </svg>
+            <a href="/"><span class="site-title">HumanCapitalStrategy System</span></a>
+        </div>
+        <nav class="site-nav" aria-label="メインナビゲーション">
+            <a class="site-nav__link" href="{{ url_for('read_test') }}">Test</a>
+            <a class="site-nav__link" href="{{ url_for('read_chat') }}">Chat</a>
+            <a class="site-nav__link" href="{{ url_for('read_sample1') }}">Sample 1</a>
+            <a class="site-nav__link" href="{{ url_for('read_sample2') }}">Sample 2</a>
+            <a class="site-nav__link" href="{{ url_for('read_sample3') }}">Sample 3</a>
+        </nav>
+    </div>
+</header>
