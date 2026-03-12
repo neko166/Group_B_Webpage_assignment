@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITスキルチェック</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+    <style>
+        .practice-container {
+            display: flex;
+            height: calc(100vh - 60px - 20px); /* ヘッダー・フッター分を引く */
+            overflow: hidden;
+            position: relative;
+        }
+        .problem-area {
+            flex: 1;
+            padding: var(--space-3);
+            overflow-y: auto;
+            margin-right: var(--space-2);
+        }
+        .problem-area > h2 {
+            margin-bottom: var(--space-2);
+        }
+        .result-pass {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: var(--fs-h3);
+        }
+        .result-fail {
+            color: var(--mono-400);
+            font-weight: bold;
+            font-size: var(--fs-h3);
+        }
+        #conditions-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            align-items: center;
+        }
+        .filter-tag {
+            background-color: var(--mono-100);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 4px var(--space-2);
+            border-radius: 20px;
+            font-size: var(--fs-caption);
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <div class="practice-container">
+        <main id="problem-area" class="problem-area">
+            <h2>スキルチェック</h2>
+            <div id="initial-message">
+                <p>右側のチャットで、スキルチェックをする内容についてお聞かせください。</p>
+                <p>10問の問題が出題されます。90点以上で合格です。</p>
+            </div>
+
+            <!-- 条件表示エリア -->
+            <section id="conditions-section" class="c-card mb-3 hidden">
+                <h4>試験条件</h4>
+                <div id="conditions-area">
+                    <!-- JSで条件タグを追加 -->
+                </div>
+            </section>
+
+            <!-- 問題フォーム -->
+            <form id="questions-form" class="hidden">
+                <div id="questions-container">
+                    <!-- JSで問題カードを追加 -->
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.2em;">回答を送信して採点</button>
+            </form>
+
+            <!-- 結果表示エリア -->
+            <div id="result-container" class="hidden">
+                <h3>判定結果</h3>
+                <div id="score-display" style="margin-bottom: var(--space-3);"></div>
+                <div id="result-details"></div>
+                <button onclick="location.reload()" class="btn btn-secondary mt-3">再挑戦する</button>
+            </div>
+        </main>
+        
+        {% include "partials/chat_panel.html" %}
+    </div>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+    <script src="{{ url_for('static', path='js/chat_manager.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Main Area UI Elements ---
+            const problemArea = document.getElementById('problem-area');
+            const initialMessage = document.getElementById('initial-message');
+            const conditionsArea = document.getElementById('conditions-area');
+            const questionsForm = document.getElementById('questions-form');
+            const questionsContainer = document.getElementById('questions-container');
+            const resultContainer = document.getElementById('result-container');
+            
+            // --- Mock Data ---
+            const MOCK_QUESTIONS = Array.from({ length: 10 }, (_, i) => ({
+                id: i + 1,
+                title: `問題 ${i + 1}`,
+                text: `これはプログラミングに関する問題 ${i + 1} のダミーテキストです。適切な回答を入力してください。`,
+                placeholder: `回答を入力してください...`
+            }));
+
+            let chatApp = null;
+
+            const startSkillCheck = async () => {
+                await new Promise(r => setTimeout(r, 800));
+
+                initialMessage.classList.add('hidden');
+                document.getElementById('conditions-section').classList.remove('hidden');
+                questionsForm.classList.remove('hidden');
+                
+                // 条件タグの表示
+                conditionsArea.innerHTML = '';
+                ['Python', '基礎知識', '全10問'].forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'filter-tag';
+                    span.textContent = tag;
+                    conditionsArea.appendChild(span);
+                });
+                
+                questionsContainer.innerHTML = '';
+                MOCK_QUESTIONS.forEach(q => {
+                    const card = document.createElement('div');
+                    card.className = 'c-card';
+                    card.style.marginBottom = "var(--space-3)"; // 共通コンポーネントに影響を与えず、このページでのみマージンを確保
+                    card.innerHTML = `
+                        <h3 class="c-card__title">${q.title}</h3>
+                        <p class="mt-2">${q.text}</p>
+                        <div class="mt-2">
+                            <textarea class="chat-input" name="q${q.id}" rows="3" style="width:100%;" placeholder="${q.placeholder}"></textarea>
+                        </div>
+                    `;
+                    questionsContainer.appendChild(card);
+                });
+
+                if (chatApp) {
+                    chatApp.appendMessage('assistant', 'Pythonのスキルチェック問題を作成しました。左側のフォームから全10問に回答し、最後に送信ボタンを押してください。');
+                }
+            };
+
+            // --- Skill Check Logic ---
+            questionsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if(!confirm('回答を送信して採点しますか？')) return;
+
+                // UI Loading
+                const btn = questionsForm.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.innerText = '採点中...';
+
+                if (chatApp) {
+                    chatApp.appendMessage('user', '回答を送信しました。採点をお願いします。');
+                }
+
+                await new Promise(r => setTimeout(r, 1500));
+
+                questionsForm.classList.add('hidden');
+                document.getElementById('conditions-section').classList.add('hidden');
+                resultContainer.classList.remove('hidden');
+                
+                const score = 92;
+                const isPassed = score >= 90;
+                const resultClass = isPassed ? 'result-pass' : 'result-fail';
+                const resultText = isPassed ? '合格' : '不合格';
+
+                document.getElementById('score-display').innerHTML = `
+                    <p>あなたのスコア: <span style="font-size: 2em; font-weight: bold;">${score}点</span></p>
+                    <p class="${resultClass}">${resultText}</p>
+                `;
+                
+                document.getElementById('result-details').innerHTML = `
+                    <div class="c-card">
+                        <h3 class="c-card__title">総合評価</h3>
+                        <p class="mt-2">基本的な文法から応用的なリスト内包表記まで、正しく理解できています。特に問題3と問題7の実装は効率的でした。</p>
+                    </div>
+                `;
+
+                if (chatApp) {
+                    chatApp.appendMessage('assistant', `採点が完了しました。スコアは${score}点で${resultText}です！お疲れ様でした。`);
+                }
+                problemArea.scrollTop = 0;
+            });
+
+            // --- Chat Setup ---
+            const handleChatSubmit = async (message, appendMessage) => {
+                // このページでは、どんなメッセージでもスキルチェックを開始する
+                await startSkillCheck();
+            };
+
+            chatApp = setupChat({
+                pageType: 'skill-check',
+                handleSubmit: handleChatSubmit,
+                initialMessage: 'こんにちは。ITスキルチェックへようこそ。準備ができたら「開始」のように話しかけてください。'
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT問題練習ページ</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+    <style>
+        /* --- Layout --- */
+        .practice-container {
+            display: flex;
+            height: calc(100vh - 60px - 20px); /* ヘッダー・フッター分を引く */
+            overflow: hidden;
+            position: relative;
+        }
+        .problem-area {
+            flex: 1;
+            padding: var(--space-3);
+            overflow-y: auto;
+            margin-right: var(--space-2);
+        }
+        .problem-area > h2 {
+            margin-bottom: var(--space-2);
+        }
+
+        /* --- Filter / Condition Display --- */
+        .filter-display-area {
+            background-color: var(--mono-100);
+            padding: var(--space-2);
+            border-radius: var(--radius-s);
+            margin-bottom: var(--space-3);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            align-items: center;
+            border: var(--border-standard);
+        }
+        .filter-display-area h4 {
+            margin: 0;
+            font-size: var(--fs-label);
+            margin-right: var(--space-1);
+        }
+        .filter-tag {
+            background-color: var(--mono-100);
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            color: var(--primary);
+            font-size: var(--fs-caption);
+            font-weight: bold;
+            padding: 4px var(--space-2);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+        .filter-tag .close-btn {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.2em;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        .filter-tag .close-btn:hover {
+            background-color: var(--mono-200);
+        }
+        #result-content pre {
+            background-color: var(--mono-150);
+            padding: var(--space-2);
+            border-radius: var(--radius-s);
+            margin-top: var(--space-2);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        #result-content code {
+            font-family: var(--font-family-mono);
+        }
+        /* --- Utility Classes for this page --- */
+        .hint-area {
+            background-color: var(--mono-200);
+            padding: var(--space-2);
+            border-radius: var(--radius-s);
+        }
+        .form-label {
+            display: block;
+            font-weight: bold;
+        }
+        #conditions-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+        .w-100 { width: 100%; }
+        .text-primary { color: var(--primary); }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <div class="practice-container">
+        <main id="problem-area" class="problem-area">
+            <h2>問題練習</h2>
+            <div id="initial-message">
+                <p>右側のチャットで「Pythonのリスト操作の問題を出して」のように、挑戦したい問題について話しかけてください。</p>
+            </div>
+
+            <div id="problem-container" class="hidden">
+                <section id="conditions-section" class="c-card mb-3">
+                    <h4>出題条件</h4>
+                    <div id="conditions-area" >
+                        <!-- JSでタグを追加 -->
+                    </div>
+                </section>
+
+                <section class="c-card mb-3">
+                    <h3>問題</h3>
+                    <p id="problem-statement" class="mt-2"></p>
+                </section>
+
+                <section class="c-card mb-3">
+                    <h3>解答</h3>
+                    <form id="answer-form">
+                        <textarea id="answer-input" class="chat-input mt-1 w-100" name="answer" rows="10" placeholder="ここに回答を記述してください..."></textarea>
+                        
+                        <div id="hint-area" class="hint-area hidden mt-3">
+                            <strong>ヒント:</strong> <span id="hint-text"></span>
+                        </div>
+
+                        <div class="flex-gap mt-3">
+                            <button type="submit" id="submit-btn" class="btn btn-primary">解答を送信</button>
+                            <button id="hint-btn" type="button" class="btn btn-secondary">ヒントを表示</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <section id="result-container" class="c-card mb-3 hidden">
+                <h3>解説・評価</h3>
+                <div id="result-content"></div>
+            </section>
+        </main>
+        
+        {% include "partials/chat_panel.html" %}
+    </div>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+    <script src="{{ url_for('static', path='js/chat_manager.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // メインエリアの要素
+            const conditionsArea = document.getElementById('conditions-area');
+            const problemContainer = document.getElementById('problem-container');
+            const resultContainer = document.getElementById('result-container');
+            const hintBtn = document.getElementById('hint-btn');
+            const hintArea = document.getElementById('hint-area');
+            const hintText = document.getElementById('hint-text');
+            const submitBtn = document.getElementById('submit-btn');
+            const answerInput = document.getElementById('answer-input');
+
+            let chatApp = null;
+
+            // チャットからのメッセージで問題を作成する関数
+            const generateProblem = async (message, appendMessage) => {
+                try {
+                    // Mock: API呼び出しの遅延シミュレーション
+                    await new Promise(r => setTimeout(r, 600));
+
+                    // Mock: 問題データの生成
+                    const mockProblem = {
+                        skills: ['Python', 'リスト操作', '条件分岐'],
+                        title: '偶数の合計',
+                        statement: '整数を含むリストを受け取り、その中の偶数のみの合計を返す関数 calculate_even_sum(numbers) を作成してください。\n例: [1, 2, 3, 4, 5] -> 6',
+                        hint: 'リストの要素をforループで繰り返し、if文で偶数（num % 2 == 0）かどうかを判定して合計に加算します。sum()関数とリスト内包表記を使う方法もあります。'
+                    };
+
+                    // チャット応答
+                    appendMessage('assistant', `承知しました。問題を作成しました。左側のエリアを確認して解答してください。`);
+
+                    // UI更新: 問題エリアの表示
+                    document.getElementById('initial-message').classList.add('hidden');
+                    problemContainer.classList.remove('hidden');
+                    
+                    // 条件タグの更新
+                    conditionsArea.innerHTML = ''; // コンテナをクリア
+                    mockProblem.skills.forEach(skill => {
+                        const tagEl = document.createElement('span');
+                        tagEl.className = 'filter-tag';
+                        tagEl.dataset.skill = skill;
+                        tagEl.innerHTML = `${skill}<button class="close-btn" title="削除">&times;</button>`;
+                        conditionsArea.appendChild(tagEl);
+                    });
+
+                    // 問題文の更新
+                    document.getElementById('problem-statement').innerText = mockProblem.statement;
+
+                    // ヒントの更新
+                    hintText.textContent = mockProblem.hint;
+                    hintArea.classList.add('hidden');
+
+                    // 前回の結果をクリア
+                    resultContainer.classList.add('hidden');
+                    answerInput.value = '';
+                    submitBtn.classList.remove('hidden');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = '解答を送信';
+
+                } catch (error) {
+                    console.error(error);
+                    throw error; // エラーをchat_managerに伝播させる
+                }
+            };
+
+            // 入力欄の監視
+            answerInput.addEventListener('input', () => {
+                submitBtn.disabled = answerInput.value.trim() === '';
+            });
+
+            // 解答フォームの送信処理
+            const answerForm = document.getElementById('answer-form');
+            answerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const answerText = answerInput.value.trim();
+                if (!answerText) {
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = '送信中...';
+                if (chatApp) {
+                    chatApp.appendMessage('user', '解答を送信しました。');
+                }
+
+                await new Promise(r => setTimeout(r, 800));
+                
+                const resultContent = document.getElementById('result-content');
+                resultContainer.classList.remove('hidden');
+                
+                // 解説・評価のデザインをカード形式に変更
+                resultContent.innerHTML = `
+                    <h4 class="c-card__title text-primary">正解です！</h4>
+                    <p class="mt-2">リスト内包表記を使うとより簡潔に記述できます。</p>
+                    <pre><code>return sum([x for x in numbers if x % 2 == 0])</code></pre>
+                `;
+                
+                if (chatApp) {
+                    chatApp.appendMessage('assistant', '解答を確認しました。正解です！解説を左側に表示しました。');
+                }
+
+                // 解答後は非表示にする
+                submitBtn.classList.add('hidden');
+                hintArea.classList.add('hidden');
+                hintBtn.classList.add('hidden');
+            });
+
+            // ヒントボタン
+            hintBtn.addEventListener('click', () => {
+                hintArea.classList.toggle('hidden');
+            });
+            
+            // 条件タグの削除
+            conditionsArea.addEventListener('click', (e) => {
+                if (e.target.classList.contains('close-btn')) {
+                    e.target.parentElement.remove();
+                }
+            });
+            
+            // --- Chat Setup ---
+            chatApp = setupChat({
+                pageType: 'practice',
+                handleSubmit: generateProblem,
+                initialMessage: 'こんにちは！どのようなIT問題に挑戦しますか？\n例: PythonでFizzBuzz問題'
+            });
+        });
+    </script>
+</body>
+</html>

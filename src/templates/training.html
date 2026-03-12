@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研修案内</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+    <style>
+        /* --- Layout --- */
+        .practice-container {
+            display: flex;
+            height: calc(100vh - 60px - 20px); /* ヘッダー・フッター分を引く */
+            overflow: hidden;
+            position: relative;
+        }
+        .main-area {
+            flex: 1;
+            padding: var(--space-3);
+            overflow-y: auto;
+            margin-right: var(--space-2);
+        }
+        .main-area > h2 {
+            margin-bottom: var(--space-2);
+        }
+
+        #filter-display-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            align-items: center;
+        }
+        .filter-tag {
+            background-color: var(--mono-100);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 4px var(--space-2);
+            border-radius: 20px;
+            font-size: var(--fs-caption);
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+        .filter-tag .close-btn {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.2em;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        .filter-tag .close-btn:hover {
+            background-color: var(--mono-200);
+        }
+
+        .training-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--space-3);
+        }
+
+        /* c-card内部のレイアウト用 */
+        .card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-1);
+        }
+        .card__category {
+            background-color: var(--mono-200);
+            color: var(--mono-400);
+            padding: 2px var(--space-1);
+            border-radius: var(--radius-s);
+            font-size: var(--fs-caption);
+            flex-shrink: 0;
+        }
+        .card__description {
+            font-size: var(--fs-data);
+            margin-bottom: var(--space-3);
+            flex-grow: 1;
+        }
+        .card__meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--fs-caption);
+            color: var(--mono-300);
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <div class="practice-container">
+        <main id="main-area" class="main-area">
+            <h2>研修検索</h2>
+            <div id="initial-message">
+                <p>右側のチャットで、希望する研修についてお聞かせください。</p>
+            </div>
+
+            <div id="results-area" class="hidden">
+                <section class="c-card mb-3">
+                    <h4>検索条件</h4>
+                    <div id="filter-display-area">
+                        <!-- JSでフィルター条件を追加 -->
+                    </div>
+                </section>
+                <div id="training-cards-container">
+                    <!-- JSで研修カードを追加 -->
+                </div>
+            </div>
+        </main>
+
+        {% include "partials/chat_panel.html" %}
+    </div>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+    <script src="{{ url_for('static', path='js/chat_manager.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Main Area UI Elements ---
+            const initialMessage = document.getElementById('initial-message');
+            const resultsArea = document.getElementById('results-area');
+            const filterDisplayArea = document.getElementById('filter-display-area');
+            const trainingCardsContainer = document.getElementById('training-cards-container');
+
+            // --- State ---
+            let currentFilters = [];
+
+            // --- Mock Data ---
+            const MOCK_TRAININGS = [
+                { title: '実践Pythonデータ分析', category: 'データサイエンス', level: '中級', description: 'PandasとNumPyを用いたデータ前処理から、scikit-learnでの機械学習モデル構築までを実践的に学びます。', duration: '3日間' },
+                { title: 'Webアプリ開発ハンズオン', category: 'Web開発', level: '中級', description: 'FastAPIとReactを用いて、モダンなWebアプリケーションの設計からデプロイまでを一気通貫で体験します。', duration: '5日間' },
+                { title: 'クラウドネイティブ技術入門', category: 'インフラ', level: '初級', description: 'DockerとKubernetesの基本を学び、コンテナ技術の基礎とクラウド上でのアプリケーション実行方法を理解します。', duration: '2日間' },
+                { title: 'UI/UXデザインの原則', category: 'デザイン', level: '初級', description: 'ユーザー中心設計の考え方に基づき、効果的なUIをデザインするための原則とプロトタイピング手法を学びます。', duration: '2日間' },
+                { title: 'アジャイル開発とスクラム', category: 'マネジメント', level: '全レベル', description: '変化に強い開発チームを作るためのアジャイルマインドセットと、スクラムフレームワークの具体的な実践方法を学びます。', duration: '2日間' },
+            ];
+
+            const displayTrainingResults = async (filters) => {
+                currentFilters = filters;
+                await new Promise(r => setTimeout(r, 800));
+
+                initialMessage.classList.add('hidden');
+                resultsArea.classList.remove('hidden');
+
+                // フィルター表示
+                filterDisplayArea.innerHTML = '';
+                currentFilters.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'filter-tag';
+                    tagEl.dataset.filter = tag;
+                    tagEl.innerHTML = `${tag}<button class="close-btn" title="削除">&times;</button>`;
+                    filterDisplayArea.appendChild(tagEl);
+                });
+
+                // 研修カード表示
+                trainingCardsContainer.innerHTML = '';
+                MOCK_TRAININGS.forEach(t => {
+                    const card = document.createElement('div');
+                    card.className = 'c-card';
+                    card.innerHTML = `
+                        <div class="card__header">
+                            <h3 class="c-card__title">${t.title}</h3>
+                            <span class="card__category">${t.category}</span>
+                        </div>
+                        <p class="card__description">${t.description}</p>
+                        <div class="card__meta">
+                            <span>レベル: ${t.level}</span>
+                            <span>期間: ${t.duration}</span>
+                        </div>
+                    `;
+                    trainingCardsContainer.appendChild(card);
+                });
+            };
+
+            // フィルター削除イベント
+            filterDisplayArea.addEventListener('click', (e) => {
+                if (e.target.classList.contains('close-btn')) {
+                    const filterToRemove = e.target.parentElement.dataset.filter;
+                    currentFilters = currentFilters.filter(f => f !== filterToRemove);
+                    
+                    // UIからタグを削除
+                    e.target.parentElement.remove();
+
+                    // 本来はここでフィルター結果を再表示する
+                    console.log('Updated filters:', currentFilters);
+                }
+            });
+
+            // --- Chat Setup ---
+            const handleChatSubmit = async (message, appendMessage) => {
+                // 将来的には message の内容を解析してAPIに渡す
+                const mockFilters = ['Python', '中級'];
+                appendMessage('assistant', `承知しました。ご要望に応じて研修を検索します。`);
+                await displayTrainingResults(mockFilters);
+            };
+
+            const chatApp = setupChat({
+                pageType: 'training',
+                handleSubmit: handleChatSubmit,
+                initialMessage: 'こんにちは。あなたのスキルやロードマップに合った研修を探します。どのような研修に興味がありますか？'
+            });
+        });
+    </script>
+</body>
+</html>

@@ -7,7 +7,6 @@ from pydantic import BaseModel
 router = APIRouter()
 
 # --- パスとテンプレート設定 ---
-# このルーターファイルからの相対パスでテンプレートディレクトリを解決します。
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
@@ -19,7 +18,6 @@ class Item(BaseModel):
 # --- HTMLページを返すエンドポイント ---
 @router.get("/", response_class=HTMLResponse, tags=["pages"])
 async def read_root(request: Request):
-    # テンプレートに渡すデータ
     context = {
         "request": request, # テンプレートでurl_forを使うために必須
         "page_title": "Jinja2 サンプル",
@@ -48,3 +46,15 @@ async def read_sample2(request: Request):
 @router.get("/sample-page-3", response_class=HTMLResponse, tags=["pages"])
 async def read_sample3(request: Request):
     return templates.TemplateResponse("sample-page-3.html", {"request": request})
+
+@router.get("/training", response_class=HTMLResponse, tags=["pages"])
+async def read_training(request: Request):
+    return templates.TemplateResponse("training.html", {"request": request})
+
+@router.get("/skill-check", response_class=HTMLResponse, tags=["pages"])
+async def read_skill_check(request: Request):
+    return templates.TemplateResponse("skill-check.html", {"request": request})
+
+@router.get("/practice", response_class=HTMLResponse, tags=["pages"])
+async def read_practice(request: Request):
+    return templates.TemplateResponse("practice.html", {"request": request})
