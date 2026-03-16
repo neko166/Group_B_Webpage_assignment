@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 
 class ErrorCode(Enum):
@@ -17,7 +18,7 @@ class ErrorCode(Enum):
 
 
 class AppException(Exception):
-    def __init__(self, error_code: ErrorCode, detail: str | None = None):
+    def __init__(self, error_code: ErrorCode, detail: Optional[str] = None):
         self.status_code = error_code.status_code
         self.detail = detail or error_code.detail
         super().__init__(self.detail)

@@ -6,6 +6,7 @@
     <title>研修案内</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/conditions.css') }}">
     <style>
         /* --- Layout --- */
         .practice-container {
@@ -24,44 +25,6 @@
             margin-bottom: var(--space-2);
         }
 
-        #filter-display-area {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--space-2);
-            align-items: center;
-        }
-        .filter-tag {
-            background-color: var(--mono-100);
-            color: var(--primary);
-            border: 1px solid var(--primary);
-            padding: 4px var(--space-2);
-            border-radius: 20px;
-            font-size: var(--fs-caption);
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: var(--space-1);
-        }
-        .filter-tag .close-btn {
-            background: none;
-            border: none;
-            color: inherit;
-            cursor: pointer;
-            padding: 0;
-            font-size: 1.2em;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            transition: background-color 0.2s;
-        }
-        .filter-tag .close-btn:hover {
-            background-color: var(--mono-200);
-        }
-
         .training-cards-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -76,7 +39,7 @@
             margin-bottom: var(--space-1);
         }
         .card__category {
-            background-color: var(--mono-200);
+            background-color: var(--accent-2);
             color: var(--mono-400);
             padding: 2px var(--space-1);
             border-radius: var(--radius-s);
@@ -107,8 +70,7 @@
             </div>
 
             <div id="results-area" class="hidden">
-                <section class="c-card mb-3">
-                    <h4>検索条件</h4>
+                <section class="c-card search-conditions-wrapper">
                     <div id="filter-display-area">
                         <!-- JSでフィルター条件を追加 -->
                     </div>
@@ -136,36 +98,24 @@
 
             // --- State ---
             let currentFilters = [];
+            let conversationId = '';
+            const currentUserId = 'user-' + Math.random().toString(36).substr(2, 9);
+            let chatApp;
 
-            // --- Mock Data ---
-            const MOCK_TRAININGS = [
-                { title: '実践Pythonデータ分析', category: 'データサイエンス', level: '中級', description: 'PandasとNumPyを用いたデータ前処理から、scikit-learnでの機械学習モデル構築までを実践的に学びます。', duration: '3日間' },
-                { title: 'Webアプリ開発ハンズオン', category: 'Web開発', level: '中級', description: 'FastAPIとReactを用いて、モダンなWebアプリケーションの設計からデプロイまでを一気通貫で体験します。', duration: '5日間' },
-                { title: 'クラウドネイティブ技術入門', category: 'インフラ', level: '初級', description: 'DockerとKubernetesの基本を学び、コンテナ技術の基礎とクラウド上でのアプリケーション実行方法を理解します。', duration: '2日間' },
-                { title: 'UI/UXデザインの原則', category: 'デザイン', level: '初級', description: 'ユーザー中心設計の考え方に基づき、効果的なUIをデザインするための原則とプロトタイピング手法を学びます。', duration: '2日間' },
-                { title: 'アジャイル開発とスクラム', category: 'マネジメント', level: '全レベル', description: '変化に強い開発チームを作るためのアジャイルマインドセットと、スクラムフレームワークの具体的な実践方法を学びます。', duration: '2日間' },
-            ];
+            // --- Data from Server ---
+            const MOCK_TRAININGS = JSON.parse('{{ trainings_data | tojson }}');
+            const MOCK_USER_SKILLS = JSON.parse('{{ user_skills_data | tojson }}');
 
-            const displayTrainingResults = async (filters) => {
-                currentFilters = filters;
-                await new Promise(r => setTimeout(r, 800));
-
-                initialMessage.classList.add('hidden');
-                resultsArea.classList.remove('hidden');
-
-                // フィルター表示
-                filterDisplayArea.innerHTML = '';
-                currentFilters.forEach(tag => {
-                    const tagEl = document.createElement('span');
-                    tagEl.className = 'filter-tag';
-                    tagEl.dataset.filter = tag;
-                    tagEl.innerHTML = `${tag}<button class="close-btn" title="削除">&times;</button>`;
-                    filterDisplayArea.appendChild(tagEl);
-                });
-
-                // 研修カード表示
+            // 研修カードを表示する関数
+            const renderTrainingCards = (trainings) => {
                 trainingCardsContainer.innerHTML = '';
-                MOCK_TRAININGS.forEach(t => {
+                
+                if (!trainings || trainings.length === 0) {
+                    trainingCardsContainer.innerHTML = '<p>条件に一致する研修が見つかりませんでした。</p>';
+                    return;
+                }
+
+                trainings.forEach(t => {
                     const card = document.createElement('div');
                     card.className = 'c-card';
                     card.innerHTML = `
@@ -178,37 +128,128 @@
                             <span>レベル: ${t.level}</span>
                             <span>期間: ${t.duration}</span>
                         </div>
+                        ${t.matching_rate ? `<div class="card__matching" style="margin-top: 8px; font-weight: bold; color: var(--primary);">マッチング率: ${t.matching_rate}</div>` : ''}
                     `;
                     trainingCardsContainer.appendChild(card);
                 });
             };
 
+            // 検索結果表示のメイン処理
+            const displayTrainingResults = (filters, results) => {
+                currentFilters = filters || [];
+
+                initialMessage.classList.add('hidden');
+                resultsArea.classList.remove('hidden');
+
+                // フィルタータグ表示（Difyから条件が返ってきた場合のみ表示）
+                filterDisplayArea.innerHTML = '';
+                filterDisplayArea.innerHTML = '<span class="condition-label mr-2">検索条件</span>';
+
+                currentFilters.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'filter-tag';
+                    tagEl.dataset.filter = tag;
+                    tagEl.innerHTML = `${tag}<button class="close-btn" title="削除">&times;</button>`;
+                    filterDisplayArea.appendChild(tagEl);
+                });
+
+                // 研修カード表示 (filtered_results があればそれを使用、なければ MOCK_TRAININGS 全件などを表示可能だが、基本は結果を待つ)
+                renderTrainingCards(results);
+            };
+
             // フィルター削除イベント
             filterDisplayArea.addEventListener('click', (e) => {
-                if (e.target.classList.contains('close-btn')) {
-                    const filterToRemove = e.target.parentElement.dataset.filter;
+                if (e.target.classList.contains('close-btn') || e.target.closest('.close-btn')) {
+                    const btn = e.target.classList.contains('close-btn') ? e.target : e.target.closest('.close-btn');
+                    const filterToRemove = btn.parentElement.dataset.filter;
                     currentFilters = currentFilters.filter(f => f !== filterToRemove);
-                    
-                    // UIからタグを削除
-                    e.target.parentElement.remove();
 
-                    // 本来はここでフィルター結果を再表示する
-                    console.log('Updated filters:', currentFilters);
+                    // UIからタグを削除
+                    btn.parentElement.remove();
+
+                    // 既存の再検索ボタンがあれば削除
+                    const existingBtn = document.getElementById('research-btn');
+                    if (existingBtn) {
+                        existingBtn.remove();
+                    }
+
+                    // チャットにボットからのメッセージを追加
+                    if (chatApp && typeof chatApp.appendMessage === 'function') {
+                        chatApp.appendMessage('assistant', '検索条件が変更されました。下のボタンで再検索してください。');
+                    }
+
+                    // 再検索ボタンをチャットログ内に作成・表示
+                    const chatLog = document.querySelector('.chat-log') || document.getElementById('chat-log');
+                    if (chatLog) {
+                        const optionsDiv = document.createElement('div');
+                        optionsDiv.className = 'chat-options-container';
+
+                        const researchBtn = document.createElement('button');
+                        researchBtn.className = 'chat-option-btn';
+                        researchBtn.textContent = '再検索';
+
+                        researchBtn.onclick = () => {
+                            const chatInput = document.querySelector('.chat-input');
+                            const chatSendBtn = document.querySelector('.chat-send-btn');
+                            if (chatInput && chatSendBtn) {
+                                chatInput.value = '再検索してください。';
+                                chatSendBtn.click();
+                            }
+                            optionsDiv.remove();
+                        };
+
+                        optionsDiv.appendChild(researchBtn);
+                        chatLog.appendChild(optionsDiv);
+                        chatLog.scrollTop = chatLog.scrollHeight;
+                    }
                 }
             });
 
             // --- Chat Setup ---
             const handleChatSubmit = async (message, appendMessage) => {
-                // 将来的には message の内容を解析してAPIに渡す
-                const mockFilters = ['Python', '中級'];
-                appendMessage('assistant', `承知しました。ご要望に応じて研修を検索します。`);
-                await displayTrainingResults(mockFilters);
+                try {
+                    const payload = {
+                        message: message,
+                        conversation_id: conversationId,
+                        user_id: currentUserId,
+                        mode: "研修情報",
+                        current_conditions: currentFilters.join(','),
+                        training_sessions: JSON.stringify(MOCK_TRAININGS),
+                        user_skills: JSON.stringify(MOCK_USER_SKILLS)
+                    };
+
+                    const data = await sendToDify(payload);
+
+                    // 会話ID更新
+                    if (data.conversation_id) conversationId = data.conversation_id;
+                    
+                    const parsedData = parseDifyResponse(data.answer);
+
+                    // 1. メッセージ表示
+                    appendMessage('assistant', parsedData.message || data.answer);
+
+                    // 2. 検索結果の更新 (filtered_results を優先して使用)
+                    if (parsedData.filtered_results && Array.isArray(parsedData.filtered_results)) {
+                        displayTrainingResults(parsedData.conditions, parsedData.filtered_results);
+                    } else if (parsedData.conditions && Array.isArray(parsedData.conditions)) {
+                        // fallback: 結果が直接来ない場合は条件だけ表示（ただし中身は空になる可能性があるため注意）
+                        // 今回の要件では filtered_results が来ること前提
+                        displayTrainingResults(parsedData.conditions, []); 
+                    }
+
+                    // 3. 提案ボタンの表示
+                    displayOptions(parsedData.options);
+
+                } catch (error) {
+                    console.error("【チャットエラー詳細】:", error);
+                    appendMessage('assistant', 'すみません、エラーが発生しました。もう一度お試しください。');
+                }
             };
 
-            const chatApp = setupChat({
+            chatApp = setupChat({
                 pageType: 'training',
                 handleSubmit: handleChatSubmit,
-                initialMessage: 'こんにちは。あなたのスキルやロードマップに合った研修を探します。どのような研修に興味がありますか？'
+                initialMessage: 'こんにちは。ご希望の言語や難易度を教えていただければ、最適な研修を検索します。'
             });
         });
     </script>

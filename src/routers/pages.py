@@ -49,11 +49,31 @@ async def read_sample3(request: Request):
 
 @router.get("/training", response_class=HTMLResponse, tags=["pages"])
 async def read_training(request: Request):
-    return templates.TemplateResponse("training.html", {"request": request})
+    ###########################################################
+    # ダミーデータ
+    trainings_data = [
+        {"id": 1, "title": "Python基礎研修", "description": "Pythonの基本的な文法から関数、クラスまでを学びます。", "category": "Programming", "level": "初級", "duration": "3日間"},
+        {"id": 2, "title": "応用SQL講座", "description": "複雑な結合やウィンドウ関数など、実践的なSQLスキルを習得します。", "category": "Database", "level": "中級", "duration": "2日間"},
+        {"id": 3, "title": "Gitチーム開発入門", "description": "ブランチ戦略やコンフリクト解消など、チーム開発に必要なGit操作を学びます。", "category": "DevOps", "level": "初級", "duration": "1日間"},
+    ]
+    user_skills_data = ["Python", "SQL", "Git"]
+    ###########################################################
+    return templates.TemplateResponse("training.html", {
+        "request": request,
+        "trainings_data": trainings_data,
+        "user_skills_data": user_skills_data
+    })
 
 @router.get("/skill-check", response_class=HTMLResponse, tags=["pages"])
 async def read_skill_check(request: Request):
-    return templates.TemplateResponse("skill-check.html", {"request": request})
+    ###########################################################
+    # ダミーデータ
+    user_skills_data = ["Python", "SQL", "Git", "JavaScript"]
+    ###########################################################
+    return templates.TemplateResponse("skill-check.html", {
+        "request": request,
+        "user_skills_data": user_skills_data
+    })
 
 @router.get("/practice", response_class=HTMLResponse, tags=["pages"])
 async def read_practice(request: Request):

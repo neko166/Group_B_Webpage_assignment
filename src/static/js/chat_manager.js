@@ -116,3 +116,77 @@ function setupChat(config) {
 
     return { appendMessage };
 }
+
+/**
+ * Dify APIにリクエストを送信します。
+ * @param {object} payload - リクエストペイロード
+ * @returns {object} - レスポンスデータ
+ */
+async function sendToDify(payload) {
+    const response = await fetch('/api/dify/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`API request failed: ${errorBody}`);
+    }
+
+    return await response.json();
+}
+
+/**
+ * Difyのレスポンスをパースします。
+ * @param {string} answerText - レスポンスのanswerテキスト
+ * @returns {object} - パースされたデータ
+ */
+function parseDifyResponse(answerText) {
+    let parsedData = { message: answerText };
+    try {
+        // まず、```json ブロックを探す
+        const jsonMatch = answerText.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+            parsedData = JSON.parse(jsonMatch[1]);
+        } else {
+            // 次に、全体が JSON かどうか試す
+            parsedData = JSON.parse(answerText);
+        }
+    } catch (e) {
+        // JSON でない場合は、message として扱う
+        console.warn("JSON parse failed, treating as plain text:", e);
+    }
+    return parsedData;
+}
+
+/**
+ * オプションボタンを表示します。
+ * @param {Array} options - オプションの配列
+ */
+function displayOptions(options) {
+    if (!options || options.length === 0) return;
+
+    const chatLog = document.querySelector('.chat-log') || document.getElementById('chat-log');
+    if (!chatLog) return;
+
+    const optionsDiv = document.createElement('div');
+    optionsDiv.className = 'chat-options-container';
+    options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'chat-option-btn';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => {
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-button');
+            if (input && sendBtn) {
+                input.value = opt;
+                sendBtn.click();
+                optionsDiv.remove();
+            }
+        });
+        optionsDiv.appendChild(btn);
+    });
+    chatLog.appendChild(optionsDiv);
+    chatLog.scrollTop = chatLog.scrollHeight;
+}

@@ -19,3 +19,17 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+# --- Dify連携用モデル ---
+class DifyChatRequest(BaseModel):
+    message: str
+    conversation_id: str = ""
+    user_id: str
+    mode: str = "general"
+    current_conditions: str = ""
+    training_sessions: str = ""
+    user_skills: str = ""
+    skillcheck_answer: Optional[str] = ""
+    answer: Optional[str] = ""
+    practice_answer: Optional[str] = ""
+    hint_request: Optional[bool] = False
