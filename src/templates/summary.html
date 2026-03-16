@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}営業向けサマリー{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/summary.css') }}">
+{% endblock %}
+
+{% block content %}
+<main class="summary-main l-container">
+
+  <div class="summary-header">
+    <div>
+      <h1 class="summary-title">営業向けサマリー</h1>
+      <p class="summary-sub">クライアント提案用の資料を生成</p>
+    </div>
+    <div class="summary-header-actions">
+      <button class="btn-summary-action" id="btnEmail">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
+        メール送信
+      </button>
+      <button class="btn-summary-action btn-dark" id="btnPdf" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PDF出力
+      </button>
+    </div>
+  </div>
+
+  <!-- タブ -->
+  <div class="summary-tabs">
+    <button class="summary-tab active" onclick="switchTab('proposal', this)">提案書フォーマット</button>
+    <button class="summary-tab" onclick="switchTab('assign', this)">案件アサインフォーマット</button>
+  </div>
+
+  <!-- 提案書フォーマット -->
+  <div id="tabProposal" class="tab-content">
+
+    <div class="summary-section">
+      <div class="section-heading">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        エンジニアプロフィール
+      </div>
+      <div class="profile-grid">
+        <div class="profile-item"><span class="pitem-label">氏名</span><span class="pitem-value" id="p_name">—</span></div>
+        <div class="profile-item"><span class="pitem-label">年齢</span><span class="pitem-value" id="p_age">—</span></div>
+        <div class="profile-item"><span class="pitem-label">経験年数</span><span class="pitem-value" id="p_exp">—</span></div>
+        <div class="profile-item"><span class="pitem-label">現在のレベル</span><span class="pitem-value" id="p_role">—</span></div>
+        <div class="profile-item"><span class="pitem-label">稼働可能時期</span><span class="pitem-value" id="p_available">—</span></div>
+        <div class="profile-item"><span class="pitem-label">勤務地</span><span class="pitem-value" id="p_locations">—</span></div>
+      </div>
+      <div class="profile-rate-row">
+        <span class="pitem-label">希望単価</span>
+        <span class="pitem-value rate-value" id="p_rate">—</span>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="section-heading">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        スキルサマリー
+      </div>
+      <div class="skill-summary-body">
+        <div class="skill-strength">
+          <div class="sub-label">強み・特徴</div>
+          <ul class="strength-list" id="p_strengths"></ul>
+        </div>
+        <div class="skill-stack">
+          <div class="sub-label">技術スタック</div>
+          <div id="p_stack"></div>
+        </div>
+        <div class="skill-level-bars">
+          <div class="sub-label">スキルレベル評価</div>
+          <div id="p_level_bars"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="section-heading">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2M8 7V5a2 2 0 0 0-4 0v2"/></svg>
+        プロジェクト実績
+      </div>
+      <div id="p_careers"></div>
+    </div>
+
+    <div class="summary-section">
+      <div class="section-heading" style="color:#3b5bdb;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        マッチング案件提案
+      </div>
+      <p class="section-sub">このエンジニアに最適な案件</p>
+      <div id="p_projects"></div>
+    </div>
+
+  </div>
+
+  <!-- 案件アサインフォーマット -->
+  <div id="tabAssign" class="tab-content" style="display:none">
+
+    <div class="summary-section">
+      <div class="section-heading">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        案件アサイン用サマリー
+      </div>
+      <p class="section-sub">社内案件アサイン用のフォーマット</p>
+      <div class="assign-info-grid">
+        <div class="assign-info-box">
+          <div class="assign-info-row"><span>氏名: </span><span id="a_name" class="assign-highlight">—</span></div>
+          <div class="assign-info-row"><span>レベル: </span><span id="a_role" class="assign-highlight">—</span></div>
+        </div>
+        <div class="assign-info-box">
+          <div class="assign-info-row"><span>稼働可能: </span><span id="a_available" class="assign-highlight">—</span></div>
+          <div class="assign-info-row"><span>希望単価: </span><span id="a_rate" class="assign-highlight">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="sub-label" style="margin-bottom:12px;">案件アサイン適性分析</div>
+      <div id="a_suitability"></div>
+    </div>
+
+    <div class="summary-section">
+      <div class="sub-label" style="margin-bottom:12px;">推薦アサイン案件</div>
+      <div id="a_projects"></div>
+    </div>
+
+    <div class="summary-section assign-notes-box">
+      <div class="sub-label" style="margin-bottom:8px;">アサイン時の注意事項</div>
+      <ul id="a_notes" class="notes-list"></ul>
+    </div>
+
+  </div>
+
+</main>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  window.__SUMMARY_USER_ID__ = {{ user.user_id if user else 1 }};
+</script>
+<script src="{{ url_for('static', path='js/summary.js') }}?v=1"></script>
+{% endblock %}

@@ -1,0 +1,465 @@
+/* ===== レイアウト ===== */
+.roadmap-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  width: 100%;
+}
+
+/* ===== ページヘッダー ===== */
+.roadmap-page-header {
+  margin-bottom: 20px;
+}
+
+.roadmap-title {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--mono-400);
+  margin-bottom: 4px;
+}
+
+.roadmap-subtitle {
+  font-size: var(--fs-data);
+  color: var(--blue);
+}
+
+/* ===== ボタン共通 ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--orange);
+  color: var(--orange);
+  background: var(--mono-100);
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  font-size: var(--fs-data);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+}
+.btn:hover       { background: var(--orange); color: var(--mono-100); }
+.btn-sm          { padding: 4px 14px; font-size: 12px; border-radius: 20px; }
+.btn-primary     { background: var(--orange); color: var(--mono-100); }
+.btn-primary:hover { opacity: 0.9; }
+
+/* 黒ボタン（学習を開始） */
+.btn-dark {
+  background: #1a1a2e;
+  color: white;
+  border-color: #1a1a2e;
+}
+.btn-dark:hover { background: #2d2d44; color: white; }
+
+/* ===== ローディング ===== */
+.roadmap-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: var(--mono-300);
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid #eee;
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== 空状態 ===== */
+.roadmap-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 12px;
+  color: var(--mono-300);
+  font-size: 14px;
+}
+.empty-sub { font-size: 12px; }
+
+/* ===== 目標カード ===== */
+.goal-card {
+  background: var(--mono-100);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  border: 1px solid var(--border);
+}
+
+.goal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.goal-icon {
+  width: 28px; height: 28px;
+  background: var(--orange-pale);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--orange);
+  flex-shrink: 0;
+}
+
+.goal-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mono-300);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.goal-updated {
+  font-size: 11px;
+  color: var(--mono-200);
+  margin-left: auto;
+}
+
+.goal-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--mono-400);
+  margin-bottom: 16px;
+}
+
+.goal-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.progress-label {
+  font-size: 13px;
+  color: var(--mono-300);
+  font-weight: 600;
+}
+
+.progress-label strong {
+  color: var(--mono-400);
+  font-size: 13px;
+}
+
+.duration-label {
+  font-size: 12px;
+  color: var(--mono-300);
+}
+
+.progress-bar-bg {
+  height: 10px;
+  background: #e8eaf6;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), #4f8fd4);
+  border-radius: 5px;
+  transition: width 0.8s ease;
+}
+
+/* ===== ステップ一覧 ===== */
+.roadmap-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.roadmap-step {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+}
+
+/* コネクター（縦線 + 丸） */
+.step-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  padding-top: 18px;
+}
+
+.step-circle {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.step-circle.completed {
+  background: var(--green);
+  color: white;
+}
+.step-circle.current {
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 0 0 5px rgba(26, 111, 181, 0.15);
+}
+.step-circle.upcoming {
+  background: var(--mono-100);
+  border: 2px solid #d0d0d0;
+}
+
+.current-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: white;
+}
+
+.step-line {
+  width: 2px;
+  flex: 1;
+  min-height: 20px;
+  background: #e0e0e0;
+  margin: 4px 0;
+}
+
+/* ===== ステップカード ===== */
+.step-card {
+  flex: 1;
+  background: var(--mono-100);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  margin-left: 8px;
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s;
+}
+.step-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+
+.step-completed .step-card { border-left: 4px solid var(--green); background: #f8fff8; }
+.step-current   .step-card { border-left: 4px solid var(--blue); background: #f0f6ff; }
+.step-upcoming  .step-card { border-left: 4px solid #e0e0e0; }
+
+/* カードヘッダー（バッジ + 詳細ボタン） */
+.step-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.step-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* レベルバッジ */
+.level-badge {
+  background: #1a1a2e;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 12px;
+  letter-spacing: 0.03em;
+}
+
+/* ステータスバッジ */
+.step-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 12px;
+}
+.status-completed { background: #16a34a; color: white; }
+.status-current   { background: var(--blue); color: white; }
+.status-upcoming  { background: #f0f0f0; color: var(--mono-300); }
+
+/* タイトル・説明 */
+.step-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mono-400);
+  margin: 0 0 6px 0;
+}
+
+.step-description {
+  font-size: 13px;
+  color: var(--mono-300);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+/* 必要なスキルセクション */
+.step-skills-section {
+  margin-bottom: 14px;
+}
+
+.skills-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--mono-300);
+}
+
+.skills-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mono-300);
+}
+
+.skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-tag {
+  background: #f0f4ff;
+  color: var(--blue);
+  border: 1px solid #d0dff5;
+  border-radius: 10px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* フッター */
+.step-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.step-footer-text {
+  font-size: 13px;
+  font-weight: 500;
+}
+.completed-text { color: var(--green); }
+.current-text   { color: var(--blue); }
+.upcoming-text  { color: var(--mono-300); }
+
+/* ===== 案件カード（詳細モーダル内） ===== */
+.project-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.project-card:last-child { margin-bottom: 0; }
+
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.project-name    { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+.project-company { font-size: 12px; color: var(--mono-300); }
+
+.project-match {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.match-badge {
+  background: var(--orange-pale);
+  color: var(--orange);
+  border: 1px solid var(--orange);
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.match-label { font-size: 10px; color: var(--mono-200); margin-top: 2px; }
+
+.project-overview {
+  font-size: 12px;
+  color: var(--mono-300);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.project-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--mono-200);
+}
+
+/* ===== 詳細モーダル ===== */
+.modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:var(--z-overlay); align-items:center; justify-content:center; }
+.modal-backdrop.open { display:flex; }
+.modal { background:var(--mono-100); border-radius:var(--radius-m); width:520px; max-width:95vw; max-height:88vh; overflow-y:auto; z-index:var(--z-modal); }
+.modal-header { background:var(--mono-100); color:var(--mono-400); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:1; }
+.modal-header h3 { font-size:15px; font-weight:700; margin:0; }
+.modal-close { background:none; border:none; color:var(--mono-300); font-size:20px; cursor:pointer; line-height:1; }
+.modal-body { padding:16px 20px; }
+.modal-footer { padding:12px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; }
+
+.detail-section { margin-bottom: 0; }
+.detail-row { display:flex; border-bottom:1px solid #f5f5f5; padding:8px 0; font-size:13px; }
+.detail-row:last-child { border-bottom:none; }
+.detail-label { width:90px; font-weight:600; color:var(--mono-300); flex-shrink:0; }
+.detail-value { color:var(--mono-400); flex:1; line-height:1.5; }
+
+.detail-divider {
+  height: 1px;
+  background: #eee;
+  margin: 16px 0 12px;
+}
+
+.detail-projects-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mono-400);
+  margin-bottom: 12px;
+}
+
+.projects-loading {
+  text-align: center;
+  padding: 16px;
+  color: var(--mono-300);
+  font-size: 13px;
+}
+
+.no-projects {
+  text-align: center;
+  color: var(--mono-300);
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 768px) {
+  .roadmap-main { padding: 16px; }
+  .step-card-header { flex-wrap: wrap; }
+}
