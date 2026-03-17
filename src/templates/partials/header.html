@@ -4,8 +4,7 @@
         padding-bottom: 0;
     }
 
-    .site-header .l-container {
-        padding-left: 16px;
+    .site-header {
         max-width: 100%;
         margin: 0;
     }
@@ -49,10 +48,11 @@
 
     .site-nav__link {
         display: inline-block;
-        padding: var(--space-1) var(--space-3);
+        padding: var(--space-1) var(--space-1);
         border: var(--border-standard);
         border-radius: var(--radius-s);
-        background-color: var(--mono-100);
+        /* background-color: var(--mono-100); */
+        color: var(--mono-100);
         font-size: var(--fs-data);
         font-weight: bold;
     }
@@ -87,6 +87,7 @@
 
     .user-menu-wrap {
         position: relative;
+        margin-right: var(--space-3);
     }
 
     .user-menu-trigger {
@@ -167,7 +168,7 @@
     }
 </style>
 <header class="site-header">
-    <div class="l-container site-header__inner">
+    <div class="site-header__inner">
         <div class="site-logo-wrap" aria-label="Project Logo">
             <svg class="site-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 253">
                 <path fill="#e63200" d="M0 0 L119 0 L119 67 L42 127 L119 185 L119 252 L0 252 L0 185 L42 185 L42 67 L0 67 Z"/>
@@ -179,6 +180,10 @@
             <a class="site-nav__link" href="{{ url_for('read_chat') }}">AIキャリアアドバイザー</a>
             <a class="site-nav__link" href="{{ url_for('read_roadmap') }}">ロードマップ</a>
             <a class="site-nav__link" href="{{ url_for('read_summary') }}">営業サマリー</a>
+            <a class="site-nav__link" href="{{ url_for('read_project') }}">案件検索</a>
+            <a class="site-nav__link" href="{{ url_for('read_training') }}">研修検索</a>
+            <a class="site-nav__link" href="{{ url_for('read_skill_check') }}">スキルチェック</a>
+            <a class="site-nav__link" href="{{ url_for('read_practice') }}">問題練習</a>
             {% if user %}
             <div class="user-menu-wrap">
                 <button class="user-menu-trigger" id="userMenuTrigger" onclick="toggleUserMenu()">
@@ -196,6 +201,7 @@
             </div>
             {% endif %}
         </nav>
+        
     </div>
 </header>
 

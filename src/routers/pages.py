@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+import schemas
 from sqlalchemy.orm import Session, joinedload
 from database import get_db
 import models
@@ -149,4 +150,123 @@ def read_dashboard(request: Request, db: Session = Depends(get_db)):
         "skills_json":   skills_json,
         "careers_json":  careers_json,
         "trainings_json": trainings_json,
+    })
+
+@router.get("/training", response_class=HTMLResponse, tags=["pages"])
+async def read_training(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # DBからトレーニングデータを取得
+    trainings_raw = db.query(models.Training).all()
+    trainings_data = [
+        {
+            "id": t.training_id,
+            "title": t.title,
+            "description": t.description or "",
+            "category": t.tags.split(",")[0] if t.tags else "その他",
+            "level": "中級",  # 仮定、必要に応じて調整
+            "duration": "1日間",  # 仮定
+            "held_at": t.held_at or "",
+            "location": t.location or "",
+            "target": t.target or "",
+        }
+        for t in trainings_raw
+    ]
+    
+    # DBからユーザーのスキルをJSON形式で取得
+    user_skills = (
+        db.query(models.UserSkill)
+        .options(joinedload(models.UserSkill.skill))
+        .filter(models.UserSkill.user_id == user.user_id)
+        .all()
+    )
+    user_skills_data = [us.skill.skill_name for us in user_skills]
+    
+    return templates.TemplateResponse("training.html", {
+        "request": request,
+        "trainings_data": trainings_data,
+        "user_skills_data": user_skills_data,
+        "user": user
+    })
+
+@router.get("/skill-check", response_class=HTMLResponse, tags=["pages"])
+async def read_skill_check(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # DBからユーザーのスキルをJSON形式で取得
+    user_skills = (
+        db.query(models.UserSkill)
+        .options(joinedload(models.UserSkill.skill))
+        .filter(models.UserSkill.user_id == user.user_id)
+        .all()
+    )
+    user_skills_data = [us.skill.skill_name for us in user_skills]
+    
+    return templates.TemplateResponse("skill-check.html", {
+        "request": request,
+        "user_skills_data": user_skills_data,
+        "user": user
+    })
+
+@router.get("/practice", response_class=HTMLResponse, tags=["pages"])
+async def read_practice(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # DBからユーザーのスキルをJSON形式で取得
+    user_skills = (
+        db.query(models.UserSkill)
+        .options(joinedload(models.UserSkill.skill))
+        .filter(models.UserSkill.user_id == user.user_id)
+        .all()
+    )
+    user_skills_data = [us.skill.skill_name for us in user_skills]
+    
+    return templates.TemplateResponse("practice.html", {
+        "request": request,
+        "user_skills_data": user_skills_data,
+        "user": user
+    })
+
+@router.get("/project", response_class=HTMLResponse, tags=["pages"])
+async def read_project(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # DBからプロジェクトデータを取得
+    projects_raw = db.query(models.Project).all()
+    projects_data = [
+        {
+            "id": p.project_id,
+            "project_name": p.project_name,
+            "company": p.company,
+            "project_overview": p.project_overview,
+            "match_rate": p.match_rate,
+            "employ_type": p.employ_type,
+            "required_skills": p.required_skills,
+            "project_duration": p.project_duration.isoformat() if p.project_duration else "",
+        }
+        for p in projects_raw
+    ]
+    
+    # DBからユーザーのスキルをJSON形式で取得
+    user_skills = (
+        db.query(models.UserSkill)
+        .options(joinedload(models.UserSkill.skill))
+        .filter(models.UserSkill.user_id == user.user_id)
+        .all()
+    )
+    user_skills_data = [us.skill.skill_name for us in user_skills]
+    
+    return templates.TemplateResponse("project.html", {
+        "request": request,
+        "projects_data": projects_data,
+        "user_skills_data": user_skills_data,
+        "user": schemas.UserResponse.from_orm(user).dict()
     })

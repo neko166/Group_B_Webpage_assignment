@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITスキルチェック</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/sidechat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/conditions.css') }}">
+    <style>
+        .practice-container {
+            display: flex;
+            height: calc(100vh - 60px - 20px); /* ヘッダー・フッター分を引く */
+            overflow: hidden;
+            position: relative;
+        }
+        .problem-area {
+            flex: 1;
+            padding: var(--space-3);
+            overflow-y: auto;
+            margin-right: var(--space-2);
+        }
+        .problem-area > h2 {
+            margin-bottom: var(--space-2);
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <div class="practice-container">
+        <main id="problem-area" class="problem-area">
+            <h2>スキルチェック</h2>
+            <div id="initial-message">
+                <p>右側のチャットで、スキルチェックをする内容を設定してください。</p>
+                <p>10問の問題が出題されます。90点以上を目指してください。</p>
+            </div>
+
+            <!-- 条件表示エリア -->
+            <section id="conditions-section" class="c-card search-conditions-wrapper hidden">
+                <div id="conditions-area"></div>
+                <div id="start-btn-container" class="mt-3 text-center hidden" style="border-top: 1px solid var(--mono-200); padding-top: var(--space-2);">
+                    <button id="start-skill-check-btn" class="btn btn-primary">問題開始</button>
+                </div>
+            </section>
+
+            <form id="questions-form" class="hidden">
+                <div id="questions-container"></div>
+                <div class="mt-4" style="text-align: center;">
+                    <button type="submit" class="btn btn-primary">回答を送信</button>
+                </div>
+            </form>
+
+            <div id="result-container" class="hidden">
+                <div id="score-display" class="text-center mb-4"></div>
+                <div id="result-details"></div>
+                <div class="text-center mt-4">
+                    <button type="button" onclick="location.reload()" class="btn btn-secondary">もう一度挑戦する</button>
+                </div>
+            </div>
+        </main>
+        
+        {% include "partials/chat_panel.html" %}
+    </div>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+    <script src="{{ url_for('static', path='js/chat_manager.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialMessage = document.getElementById('initial-message');
+            const questionsForm = document.getElementById('questions-form');
+            const questionsContainer = document.getElementById('questions-container');
+            const conditionsArea = document.getElementById('conditions-area');
+            const resultContainer = document.getElementById('result-container');
+            const problemArea = document.getElementById('problem-area');
+            const startBtnContainer = document.getElementById('start-btn-container');
+            const startBtn = document.getElementById('start-skill-check-btn');
+            
+            // --- State ---
+            let currentFilters = [];
+            let conversationId = '';
+            const currentUserId = 'user-' + Math.random().toString(36).substr(2, 9);
+            let chatApp = null;
+            let questionsData = []; // 問題データを保存
+
+            // --- Data from Server ---
+            const USER_SKILLS = JSON.parse('{{ user_skills_data | tojson | safe }}') || [];
+
+            const updateStartButtonVisibility = () => {
+                if (currentFilters.length >= 2) {
+                    startBtnContainer.classList.remove('hidden');
+                } else {
+                    startBtnContainer.classList.add('hidden');
+                }
+            };
+
+            // 条件表示
+            const displayConditions = (conditions) => {
+                currentFilters = conditions || [];
+                conditionsArea.innerHTML = '';
+
+                // ラベルを先頭に追加
+                conditionsArea.innerHTML = '<span class="condition-label">試験条件</span>';
+
+                currentFilters.forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'filter-tag';
+                    span.dataset.filter = tag;
+                    span.innerHTML = `${tag}<button class="close-btn" title="削除">&times;</button>`;
+                    conditionsArea.appendChild(span);
+                });
+                if (currentFilters.length > 0) {
+                    document.getElementById('conditions-section').classList.remove('hidden');
+                }
+                updateStartButtonVisibility();
+            };
+
+            // 問題描画
+            const renderQuestions = (questions) => {
+                if (!questions || questions.length === 0) return;
+
+                questionsData = questions; // 問題データを保存
+
+                initialMessage.classList.add('hidden');
+                questionsForm.classList.remove('hidden');
+                
+                questionsContainer.innerHTML = '';
+                questions.forEach(q => {
+                    const card = document.createElement('div');
+                    
+                    let requiredPointsHtml = '';
+                    if (q.required_points && Array.isArray(q.required_points) && q.required_points.length > 0) {
+                        requiredPointsHtml = `<div class="mt-2"><small style="font-weight:bold; color:var(--mono-400);">必須要素:</small><ul style="padding-left:1.2rem; margin-top:0.25rem; font-size:var(--fs-caption); color:var(--mono-400);">` + 
+                            q.required_points.map(pt => `<li>${pt}</li>`).join('') + 
+                            `</ul></div>`;
+                    }
+
+                    card.className = 'c-card';
+                    card.style.marginBottom = "var(--space-3)";
+                    card.innerHTML = `
+                        <h3 class="c-card__title">${q.title || '問題'}</h3>
+                        <p class="mt-2">${q.text}</p>
+                        ${requiredPointsHtml}
+                        <div class="mt-2">
+                            <textarea class="chat-input" name="q${q.id}" rows="3" style="width:100%;" placeholder="${q.placeholder}"></textarea>
+                        </div>
+                    `;
+                    questionsContainer.appendChild(card);
+                });
+            };
+            
+            // 条件タグ削除イベント
+            conditionsArea.addEventListener('click', (e) => {
+                if (e.target.classList.contains('close-btn') || e.target.closest('.close-btn')) {
+                    const btn = e.target.classList.contains('close-btn') ? e.target : e.target.closest('.close-btn');
+                    const filterToRemove = btn.parentElement.dataset.filter;
+                    currentFilters = currentFilters.filter(f => f !== filterToRemove);
+                    
+                    // UIから削除のみ
+                    btn.parentElement.remove();
+                    updateStartButtonVisibility();
+                }
+            });
+
+            // 問題開始ボタン
+            startBtn.addEventListener('click', async () => {
+                startBtn.disabled = true;
+                startBtn.textContent = '生成中...';
+
+                if (chatApp) chatApp.appendMessage('user', '設定された条件で問題を開始します。');
+
+                try {
+                    const requestPayload = {
+                        message: "問題を生成してください",
+                        conversation_id: conversationId || "",
+                        user_id: currentUserId,
+                        mode: "スキルチェック出題",
+                        current_conditions: currentFilters.join(','),
+                        user_skills: JSON.stringify(USER_SKILLS),
+                    };
+                    console.log("【Debug】問題開始リクエスト:", requestPayload);
+
+                    const response = await fetch('/api/dify/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestPayload)
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        console.error('API Error Details:', errorBody);
+                        throw new Error(`API request failed: ${errorBody}`);
+                    }
+                    const data = await response.json();
+                    if (data.conversation_id) conversationId = data.conversation_id;
+
+                    const answerText = data.answer;
+                    let parsedData = { message: answerText };
+                    try {
+                        const jsonMatch = answerText.match(/```json\s*([\s\S]*?)\s*```/) || answerText.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            parsedData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+                        }
+                    } catch (e) {
+                        console.warn("JSON parse failed");
+                    }
+
+                    if (chatApp) chatApp.appendMessage('assistant', parsedData.message || '問題を作成しました。回答フォームに入力してください。');
+
+                    // skillcheck_question (配列) の処理
+                    if (parsedData.skillcheck_question && Array.isArray(parsedData.skillcheck_question)) {
+                        const questions = parsedData.skillcheck_question.map((q, i) => ({
+                            id: q.id || (i + 1),
+                            title: `問題 ${q.id || (i + 1)}`,
+                            text: q.question,
+                            required_points: q.required_points,
+                            placeholder: '回答を入力してください...'
+                        }));
+                        renderQuestions(questions);
+                    } else if (parsedData.questions) {
+                        renderQuestions(parsedData.questions);
+                    }
+
+                    // 問題生成成功後、条件エリアを非表示にする
+                    document.getElementById('conditions-section').classList.add('hidden');
+                    // ボタン状態は戻しておく
+                    startBtn.disabled = false;
+                    startBtn.textContent = '問題開始';
+
+                } catch (error) {
+                    console.error(error);
+                    if (chatApp) chatApp.appendMessage('assistant', 'エラーが発生しました。もう一度お試しください。');
+                    startBtn.disabled = false;
+                    startBtn.textContent = '問題開始';
+                }
+            });
+
+            // --- Skill Check Logic ---
+            questionsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // UI Loading
+                const btn = questionsForm.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.innerText = '採点中...';
+
+                // 回答データの収集
+                const formData = new FormData(questionsForm);
+                const answers = [];
+                formData.forEach((value, key) => {
+                    const id = key.replace('q', '');
+                    answers.push({ id: id, answer: value });
+                });
+
+                if (chatApp) {
+                    chatApp.appendMessage('user', '回答を送信しました。採点をお願いします。');
+                }
+
+                try {
+                    const payload = {
+                        skillcheck_answer: JSON.stringify(answers),
+                        message: "採点をお願いします",
+                        conversation_id: conversationId || null,
+                        user_id: currentUserId,
+                        mode: "スキルチェック結果出力",
+                    };
+                    console.log("スキルチェック解答送信:", payload);
+
+                    const response = await fetch('/api/dify/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`API request failed: ${errorBody}`);
+                    }
+                    const data = await response.json();
+                    
+                    // 結果のパース
+                    let resultData = {};
+                    const answerText = data.answer;
+                    try {
+                        const jsonMatch = answerText.match(/```json\s*([\s\S]*?)\s*```/) || answerText.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            resultData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+                        } else {
+                            resultData = { result_summary: answerText };
+                        }
+                    } catch (e) {
+                        resultData = { result_summary: answerText };
+                    }
+
+                    // 結果画面表示のため、問題フォームを非表示にする
+                    questionsForm.classList.add('hidden');
+                    resultContainer.classList.remove('hidden');
+                    
+                    const totalScore = resultData.total_score || 0;
+                    const evaluationSummary = resultData.evaluation_summary || '評価がありません';
+                    const results = resultData.results || [];
+                    const isPassed = totalScore >= 90;
+                    const resultClass = isPassed ? 'result-pass' : 'result-fail';
+                    const resultText = isPassed ? '合格' : '不合格';
+
+                    document.getElementById('score-display').innerHTML = `
+                        <p>あなたのスコア: <span style="font-size: 2em; font-weight: bold;">${totalScore}点</span></p>
+                        <p class="${resultClass}">${resultText}</p>
+                    `;
+                    
+                    // 詳細表示
+                    let detailsHtml = `<div class="c-card mb-3"><h3 class="c-card__title">総合評価</h3><p class="mt-2">${evaluationSummary}</p></div>`;
+                    
+                    if (results && results.length > 0) {
+                        detailsHtml += '<div class="c-card"><h3 class="c-card__title">各問題の詳細</h3>';
+                        results.forEach(result => {
+                            const questionData = questionsData.find(q => q.id == result.question_no);
+                            const questionText = questionData ? questionData.text : '問題文が見つかりません';
+                            const userAnswer = result.user_answer || '回答なし';
+                            detailsHtml += `
+                                <div class="mt-3" style="border-top: 1px solid var(--mono-200); padding-top: var(--space-2);">
+                                    <h4>問題 ${result.question_no}</h4>
+                                    <p><strong>問題:</strong> ${questionText}</p>
+                                    <p><strong>あなたの回答:</strong> ${userAnswer}</p>
+                                    <p><strong>スコア:</strong> ${result.score}点</p>
+                                    <p><strong>コメント:</strong> ${result.comment}</p>
+                                </div>
+                            `;
+                        });
+                        detailsHtml += '</div>';
+                    }
+                    
+                    document.getElementById('result-details').innerHTML = detailsHtml;
+
+                    if (chatApp) {
+                        chatApp.appendMessage('assistant', `採点が完了しました。スコアは${totalScore}点で${resultText}です！`);
+                    }
+                    // problemArea.scrollTop = 0;
+
+                } catch (error) {
+                    console.error(error);
+                    if (chatApp) chatApp.appendMessage('assistant', '採点中にエラーが発生しました。');
+                    btn.disabled = false;
+                    btn.innerText = '回答を送信';
+                }
+            });
+
+            // --- Chat Setup ---
+            const handleChatSubmit = async (message, appendMessage) => {
+                try {
+                    const payload = {
+                        message: message,
+                        conversation_id: conversationId || "",
+                        user_id: currentUserId,
+                        mode: "スキルチェック条件設定",
+                        current_conditions: currentFilters.join(','),
+                        user_skills: JSON.stringify(USER_SKILLS),
+                    };
+
+                    const data = await sendToDify(payload);
+
+                    if (data.conversation_id) conversationId = data.conversation_id;
+
+                    const parsedData = parseDifyResponse(data.answer);
+
+                    // 1. メッセージ表示
+                    appendMessage('assistant', parsedData.message || data.answer);
+
+                    // 2. 条件更新
+                    if (parsedData.conditions && Array.isArray(parsedData.conditions)) {
+                        displayConditions(parsedData.conditions);
+                    }
+
+                    // 3. 問題表示 (Difyから questions が返ってきた場合)
+                    if (parsedData.questions && Array.isArray(parsedData.questions)) {
+                        renderQuestions(parsedData.questions);
+                    }
+
+                    // 4. オプションボタン表示
+                    displayOptions(parsedData.options);
+
+                } catch (error) {
+                    console.error("【チャットエラー詳細】:", error);
+                    appendMessage('assistant', 'すみません、エラーが発生しました。もう一度お試しください。');
+                }
+            };
+
+            chatApp = setupChat({
+                pageType: 'skill-check',
+                handleSubmit: handleChatSubmit,
+                initialMessage: 'こんにちは。ITスキルチェックへようこそ。まずは確認するスキルとレベルを設定してください。'
+            });
+        });
+    </script>
+</body>
+</html>

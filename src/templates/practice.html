@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT問題練習ページ</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/sidechat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/conditions.css') }}">
+    <style>
+        /* --- Layout --- */
+        .practice-container {
+            display: flex;
+            height: calc(100vh - 60px - 20px); /* ヘッダー・フッター分を引く */
+            overflow: hidden;
+            position: relative;
+        }
+        .problem-area {
+            flex: 1;
+            padding: var(--space-3);
+            overflow-y: auto;
+            margin-right: var(--space-2);
+        }
+        .problem-area > h2 {
+            margin-bottom: var(--space-2);
+        }
+
+        /* --- Utility Classes for this page --- */
+        .form-label {
+            display: block;
+            font-weight: bold;
+        }
+        #conditions-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+        .w-100 { width: 100%; }
+        .text-primary { color: var(--primary); }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <div class="practice-container">
+        <main id="problem-area" class="problem-area">
+            <h2>問題練習</h2>
+            <div id="initial-message">
+                <p>右側のチャットで挑戦したい問題の出題条件を設定してください。</p>
+            </div>
+
+            <!-- 条件表示エリア -->
+            <section id="conditions-section" class="c-card search-conditions-wrapper hidden">
+                <h4>出題条件</h4>
+                <div id="conditions-area" >
+                    <!-- JSでタグを追加 -->
+                </div>
+                <div id="create-problem-btn-container" class="mt-3 text-center hidden" style="border-top: 1px solid var(--mono-200); padding-top: var(--space-2);">
+                    <button id="create-problem-btn" class="btn btn-primary">問題作成</button>
+                </div>
+            </section>
+
+            <div id="problem-container" class="hidden">
+                <section class="c-card mb-3">
+                    <h3>問題</h3>
+                    <p id="problem-statement" class="mt-2"></p>
+                </section>
+
+                <section class="c-card mb-3">
+                    <h3>解答</h3>
+                    <form id="answer-form">
+                        <textarea id="answer-input" class="chat-input mt-1 w-100" name="answer" rows="10" placeholder="ここに回答を記述してください..."></textarea>
+                        
+                        <div id="hint-area" class="c-card hidden mt-3">
+                            <strong>ヒント:</strong> <span id="hint-text"></span>
+                        </div>
+
+                        <div class="flex-gap mt-3">
+                            <button type="submit" id="submit-btn" class="btn btn-primary">解答を送信</button>
+                            <button id="hint-btn" type="button" class="btn btn-secondary">ヒントを表示</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <section id="result-container" class="c-card mb-3 hidden">
+                <h3>解説・評価</h3>
+                <div id="result-content"></div>
+            </section>
+        </main>
+        
+        {% include "partials/chat_panel.html" %}
+    </div>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+    <script src="{{ url_for('static', path='js/chat_manager.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // メインエリアの要素
+            const conditionsArea = document.getElementById('conditions-area');
+            const problemContainer = document.getElementById('problem-container');
+            const resultContainer = document.getElementById('result-container');
+            const hintBtn = document.getElementById('hint-btn');
+            const hintArea = document.getElementById('hint-area');
+            const hintText = document.getElementById('hint-text');
+            const submitBtn = document.getElementById('submit-btn');
+            const answerInput = document.getElementById('answer-input');
+
+            let chatApp = null;
+            let currentConditions = [];
+            let conversationId = '';
+            const currentUserId = 'user-' + Math.random().toString(36).substr(2, 9);
+            let problemData = null; // 問題データを保存
+
+            // --- Data from Server ---
+            const USER_SKILLS = JSON.parse('{{ user_skills_data | tojson }}');
+
+            // 条件表示
+            const displayConditions = (conditions) => {
+                currentConditions = conditions || [];
+                conditionsArea.innerHTML = '';
+                currentConditions.forEach(skill => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'filter-tag';
+                    tagEl.dataset.skill = skill;
+                    tagEl.innerHTML = `${skill}<button class="close-btn" title="削除">&times;</button>`;
+                    conditionsArea.appendChild(tagEl);
+                });
+                if (currentConditions.length > 0) {
+                    document.getElementById('conditions-section').classList.remove('hidden');
+                    document.getElementById('create-problem-btn-container').classList.remove('hidden');
+                } else {
+                    document.getElementById('conditions-section').classList.add('hidden');
+                    document.getElementById('create-problem-btn-container').classList.add('hidden');
+                }
+            };
+
+            // 問題作成ボタン
+            const createProblemBtn = document.getElementById('create-problem-btn');
+            createProblemBtn.addEventListener('click', async () => {
+                createProblemBtn.disabled = true;
+                createProblemBtn.textContent = '作成中...';
+
+                try {
+                    const payload = {
+                        message: "問題を作成してください",
+                        conversation_id: conversationId || "",
+                        user_id: currentUserId,
+                        mode: "問題作成",
+                        current_conditions: currentConditions.join(','),
+                        user_skills: JSON.stringify(USER_SKILLS),
+                    };
+
+                    const data = await sendToDify(payload);
+
+                    if (data.conversation_id) conversationId = data.conversation_id;
+
+                    const parsedData = parseDifyResponse(data.answer);
+
+
+                    if (parsedData.question && parsedData.question.trim() !== '') {
+                        problemData = {
+                            statement: parsedData.question,
+                            hint: parsedData.message || ''
+                        };
+                        displayProblem(problemData);
+                    } else {
+                        // 問題作成失敗、条件の表示を維持
+                        alert('問題の作成に失敗しました。条件を調整して再度お試しください。');
+                    }
+
+                } catch (error) {
+                    console.error("問題作成エラー:", error);
+                    alert('問題の作成中にエラーが発生しました。');
+                } finally {
+                    createProblemBtn.disabled = false;
+                    createProblemBtn.textContent = '問題作成';
+                }
+            });
+
+            // 問題表示
+            const displayProblem = (problem) => {
+                document.getElementById('initial-message').classList.add('hidden');
+                problemContainer.classList.remove('hidden');
+                
+                document.getElementById('problem-statement').innerText = problem.statement || problem.question;
+                hintText.textContent = problem.hint || '';
+                hintArea.classList.add('hidden');
+                resultContainer.classList.add('hidden');
+                answerInput.value = '';
+                submitBtn.classList.remove('hidden');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '解答を送信';
+            };
+
+            // チャットからのメッセージで問題を作成する関数
+            const handleChatSubmit = async (message, appendMessage) => {
+                try {
+                    const payload = {
+                        message: message,
+                        conversation_id: conversationId || "",
+                        user_id: currentUserId,
+                        mode: "出題設定",
+                        current_conditions: currentConditions.join(','),
+                        user_skills: JSON.stringify(USER_SKILLS),
+                    };
+
+                    const data = await sendToDify(payload);
+
+                    if (data.conversation_id) conversationId = data.conversation_id;
+
+                    const parsedData = parseDifyResponse(data.answer);
+
+                    // メッセージ表示
+                    appendMessage('assistant', parsedData.message || data.answer);
+
+                    // 条件更新
+                    if (parsedData.conditions && Array.isArray(parsedData.conditions)) {
+                        console.log('受信したconditions:', parsedData.conditions);
+                        displayConditions(parsedData.conditions);
+                    }
+
+                    // 問題作成
+                    if (parsedData.problem) {
+                        problemData = parsedData.problem;
+                        displayProblem(problemData);
+                    }
+
+                    // オプションボタン表示
+                    displayOptions(parsedData.options);
+
+                } catch (error) {
+                    console.error("【チャットエラー詳細】:", error);
+                    appendMessage('assistant', 'すみません、エラーが発生しました。もう一度お試しください。');
+                }
+            };
+
+            // 入力欄の監視
+            answerInput.addEventListener('input', () => {
+                submitBtn.disabled = answerInput.value.trim() === '';
+            });
+
+            // 解答フォームの送信処理
+            const answerForm = document.getElementById('answer-form');
+            answerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const answerText = answerInput.value.trim();
+                if (!answerText) return;
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = '送信中...';
+                if (chatApp) {
+                    chatApp.appendMessage('user', '解答を送信しました。');
+                }
+
+                try {
+                    const payload = {
+                        message: "解答を判定してください",
+                        conversation_id: conversationId || "",
+                        user_id: currentUserId,
+                        mode: "解答判定",
+                        practice_answer: answerText,
+                        user_skills: JSON.stringify(USER_SKILLS),
+                    };
+
+                    const data = await sendToDify(payload);
+                    const answerTextFromAPI = data.answer;
+                    let resultData = { message: answerTextFromAPI };
+                    try {
+                        const jsonMatch = answerTextFromAPI.match(/```json\s*([\s\S]*?)\s*```/) || answerTextFromAPI.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            resultData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+                        }
+                    } catch (e) {
+                        console.warn("JSON parse failed");
+                    }
+
+                    resultContainer.classList.remove('hidden');
+                    
+                    const question = resultData.question || '';
+                    const userAnswer = resultData.answer || '';
+                    const sampleAnswer = resultData.sample_answer || '';
+                    const score = resultData.score || 0;
+                    const comment = resultData.comment || '評価がありません';
+                    
+                    document.getElementById('result-content').innerHTML = `
+                        <div class="mb-3">
+                            <h4 class="c-card__title">問題</h4>
+                            <p>${question}</p>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="c-card__title">あなたの回答</h4>
+                            <p>${userAnswer}</p>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="c-card__title">模範解答</h4>
+                            <p>${sampleAnswer}</p>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="c-card__title text-primary">スコア: ${score}点</h4>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="c-card__title">コメント</h4>
+                            <p>${comment}</p>
+                        </div>
+                    `;
+                    
+                    if (chatApp) {
+                        chatApp.appendMessage('assistant', `解答を確認しました。スコアは${score}点です。`);
+                    }
+
+                    submitBtn.classList.add('hidden');
+                    hintArea.classList.add('hidden');
+                    hintBtn.classList.add('hidden');
+
+                } catch (error) {
+                    console.error(error);
+                    if (chatApp) chatApp.appendMessage('assistant', '解答判定中にエラーが発生しました。');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '解答を送信';
+                }
+            });
+
+            // ヒントボタン
+            hintBtn.addEventListener('click', async () => {
+                if (!problemData) return;
+
+                hintBtn.disabled = true;
+                hintBtn.textContent = '取得中...';
+
+                try {
+                    const payload = {
+                        message: "ヒントをください",
+                        conversation_id: conversationId || "",
+                        user_id: currentUserId,
+                        mode: "サポート",
+                        hint_request: true,
+                        practice_answer: answerInput.value.trim(),
+                        user_skills: JSON.stringify(USER_SKILLS),
+                    };
+
+                    console.log('送信ペイロード:', payload);
+
+                    const data = await sendToDify(payload);
+
+                    const hintFromAPI = data.answer;
+                    hintText.textContent = hintFromAPI;
+                    hintArea.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error(error);
+                    hintText.textContent = 'ヒントの取得に失敗しました。';
+                    hintArea.classList.remove('hidden');
+                } finally {
+                    hintBtn.disabled = false;
+                    hintBtn.textContent = 'ヒントを表示';
+                }
+            });
+            
+            // 条件タグの削除
+            conditionsArea.addEventListener('click', (e) => {
+                if (e.target.classList.contains('close-btn')) {
+                    const skillToRemove = e.target.parentElement.dataset.skill;
+                    displayConditions(currentConditions.filter(s => s !== skillToRemove));
+                }
+            });
+            
+            // --- Chat Setup ---
+            chatApp = setupChat({
+                pageType: 'practice',
+                handleSubmit: handleChatSubmit,
+                initialMessage: 'こんにちは！どのようなIT問題に挑戦しますか？\n例: PythonでFizzBuzz問題'
+            });
+        });
+    </script>
+</body>
+</html>

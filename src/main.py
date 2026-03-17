@@ -14,8 +14,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from routers import users, pages, roadmap, summary, chat_sessions, auth   # noqa: E402
+import dify_service  # noqa: E402
 from database import engine, Base  # noqa: E402
 from exceptions import AppException  # noqa: E402
+from schemas import DifyChatRequest  # noqa: E402
 
 # テーブル自動作成
 Base.metadata.create_all(bind=engine)
@@ -229,3 +231,10 @@ async def app_exception_handler(request: Request, exc: AppException):
         status_code=exc.status_code,
         content={"detail": exc.detail},
     )
+
+# --- Dify連携エンドポイント ---
+@app.post("/api/dify/chat")
+async def proxy_dify_chat(req: DifyChatRequest):
+    """Dify APIへのリクエストを中継し、ビジネスロジックをサービス層に委譲します。"""
+    return await dify_service.call_dify_chat_api(req)
+
