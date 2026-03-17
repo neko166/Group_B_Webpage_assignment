@@ -150,3 +150,78 @@ def read_dashboard(request: Request, db: Session = Depends(get_db)):
         "careers_json":  careers_json,
         "trainings_json": trainings_json,
     })
+
+@router.get("/training", response_class=HTMLResponse, tags=["pages"])
+async def read_training(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # DBからトレーニングデータを取得
+    trainings_raw = db.query(models.Training).all()
+    trainings_data = [
+        {
+            "id": t.training_id,
+            "title": t.title,
+            "description": t.description or "",
+            "category": t.tags.split(",")[0] if t.tags else "その他",  # 最初のタグをカテゴリとして使用
+            "level": "中級",  # 仮定、必要に応じて調整
+            "duration": "1日間",  # 仮定
+        }
+        for t in trainings_raw
+    ]
+    
+    # DBからユーザーのスキルをJSON形式で取得
+    user_skills = (
+        db.query(models.UserSkill)
+        .options(joinedload(models.UserSkill.skill))
+        .filter(models.UserSkill.user_id == user.user_id)
+        .all()
+    )
+    user_skills_data = [us.skill.skill_name for us in user_skills]
+    
+    return templates.TemplateResponse("training.html", {
+        "request": request,
+        "trainings_data": trainings_data,
+        "user_skills_data": user_skills_data
+    })
+
+@router.get("/skill-check", response_class=HTMLResponse, tags=["pages"])
+async def read_skill_check(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # DBからユーザーのスキルをJSON形式で取得
+    user_skills = (
+        db.query(models.UserSkill)
+        .options(joinedload(models.UserSkill.skill))
+        .filter(models.UserSkill.user_id == user.user_id)
+        .all()
+    )
+    user_skills_data = [us.skill.skill_name for us in user_skills]
+    
+    return templates.TemplateResponse("skill-check.html", {
+        "request": request,
+        "user_skills_data": user_skills_data
+    })
+
+@router.get("/practice", response_class=HTMLResponse, tags=["pages"])
+async def read_practice(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # DBからユーザーのスキルをJSON形式で取得
+    user_skills = (
+        db.query(models.UserSkill)
+        .options(joinedload(models.UserSkill.skill))
+        .filter(models.UserSkill.user_id == user.user_id)
+        .all()
+    )
+    user_skills_data = [us.skill.skill_name for us in user_skills]
+    
+    return templates.TemplateResponse("practice.html", {
+        "request": request,
+        "user_skills_data": user_skills_data
+    })

@@ -9,11 +9,11 @@ sys.path.insert(0, os.path.dirname(__file__))
 # .env を database インポート前にロード（app.db を使うため）
 from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from datetime import date, datetime
 from database import SessionLocal, engine
-from models import Base, User, Skill, UserSkill, CareerHistory, Training, Project
+from models import Base, User, Skill, UserSkill, CareerHistory, Training, Project, Roadmap, ChatSession, ChatMessage
 
 # テーブルが存在しない場合は作成
 Base.metadata.create_all(bind=engine)
@@ -32,6 +32,9 @@ db = SessionLocal()
 
 def run():
     # 既存データをクリア（再実行時の重複防止）
+    db.query(ChatMessage).delete()
+    db.query(ChatSession).delete()
+    db.query(Roadmap).delete()
     db.query(UserSkill).delete()
     db.query(CareerHistory).delete()
     db.query(User).delete()
