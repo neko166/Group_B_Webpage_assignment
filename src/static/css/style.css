@@ -27,6 +27,24 @@
   --accent-1: #FDB015;
   --accent-2: #FED815;
 
+  /* オレンジ系（全ページ共通） */
+  --orange:       #FF7732;
+  --orange-light: #FF9955;
+  --orange-pale:  #FFF3EC;
+
+  /* グレー系（全ページ共通） */
+  --gray-dark:    #333333;
+  --gray-mid:     #666666;
+  --gray-light:   #aaaaaa;
+  --gray-header:  #4a4a4a;
+  --border:       #c8c8c8;
+  --shadow:       0 1px 4px rgba(0,0,0,0.15);
+  --radius:       4px;
+
+  /* その他 */
+  --green:        #16a34a;
+  --blue:         #1a6fb5;
+
   /* 白黒系 4段階 */
   --mono-100: #FFFFFF;
   --mono-200: #E0E1E2;
@@ -62,7 +80,8 @@
   --z-header: 500;
   --z-overlay: 900;
   --z-modal: 1000;
-  --footer-height: 30px;
+  --header-height: 60px;
+  --footer-height: 20px;
 }
 
 /* リセット */
@@ -87,13 +106,11 @@ body {
   width: 100%;
   max-width: var(--container-width);
   margin: 0 auto;
-  padding: 0 var(--space-3);
 }
 
 .site-header {
   color: var(--mono-100);
   background-color: var(--mono-300);
-  margin-bottom: var(--space-4);
 }
 
 .site-footer {

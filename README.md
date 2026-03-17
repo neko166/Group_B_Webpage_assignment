@@ -21,10 +21,14 @@ pip install "fastapi[all]" jinja2
 pip install bcrypt
 pip install "PyJWT[crypto]"
 pip install python-multipart
+pip install httpx
 ```
 
 ### 起動
 
+```bash
+cloudflared tunnel --url http://localhost:8000
+```
 ```bash
 cd src
 uvicorn main:app --reload --port 8000

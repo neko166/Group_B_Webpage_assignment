@@ -125,3 +125,7 @@ const App = {
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
+
+// ===== 全ページ共通モーダルヘルパー =====
+function openModal(id)  { document.getElementById(id)?.classList.add('open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
