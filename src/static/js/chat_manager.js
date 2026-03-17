@@ -19,6 +19,7 @@ function setupChat(config) {
 
     // --- Common Functions ---
     const appendMessage = (role, text) => {
+        console.log(`[CHAT ${role.toUpperCase()}] ${text}`);
         const row = document.createElement('div');
         row.className = `chat-row chat-row--${role}`;
         const bubble = document.createElement('div');
@@ -38,6 +39,7 @@ function setupChat(config) {
         const message = chatInput.value.trim();
         if (!message) return;
 
+        console.log(`[CHAT SEND] ${message}`);
         appendMessage('user', message);
         chatInput.value = '';
         chatInput.style.height = 'auto';
@@ -123,6 +125,7 @@ function setupChat(config) {
  * @returns {object} - レスポンスデータ
  */
 async function sendToDify(payload) {
+    console.log('[SEND PAYLOAD]', payload);
     const response = await fetch('/api/dify/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,7 +137,9 @@ async function sendToDify(payload) {
         throw new Error(`API request failed: ${errorBody}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log('[RECEIVE RESPONSE]', data);
+    return data;
 }
 
 /**
@@ -143,6 +148,7 @@ async function sendToDify(payload) {
  * @returns {object} - パースされたデータ
  */
 function parseDifyResponse(answerText) {
+    console.log('[PARSE INPUT]', answerText);
     let parsedData = { message: answerText };
     try {
         // まず、```json ブロックを探す
@@ -157,6 +163,7 @@ function parseDifyResponse(answerText) {
         // JSON でない場合は、message として扱う
         console.warn("JSON parse failed, treating as plain text:", e);
     }
+    console.log('[PARSED DATA]', parsedData);
     return parsedData;
 }
 

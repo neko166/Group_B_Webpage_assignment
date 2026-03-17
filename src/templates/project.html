@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>研修案内</title>
+    <title>案件検索</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/sidechat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/conditions.css') }}">
@@ -25,7 +25,7 @@
             margin-bottom: var(--space-2);
         }
 
-        .training-cards-container {
+        .project-cards-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: var(--space-3);
@@ -64,9 +64,9 @@
 
     <div class="practice-container">
         <main id="main-area" class="main-area">
-            <h2>研修検索</h2>
+            <h2>案件検索</h2>
             <div id="initial-message">
-                <p>右側のチャットで、希望する研修の条件を設定してください。</p>
+                <p>右側のチャットで、希望する案件の条件を設定してください。</p>
             </div>
 
             <div id="results-area" class="hidden">
@@ -75,8 +75,8 @@
                         <!-- JSでフィルター条件を追加 -->
                     </div>
                 </section>
-                <div id="training-cards-container">
-                    <!-- JSで研修カードを追加 -->
+                <div id="project-cards-container">
+                    <!-- JSで案件カードを追加 -->
                 </div>
             </div>
         </main>
@@ -94,7 +94,7 @@
             const initialMessage = document.getElementById('initial-message');
             const resultsArea = document.getElementById('results-area');
             const filterDisplayArea = document.getElementById('filter-display-area');
-            const trainingCardsContainer = document.getElementById('training-cards-container');
+            const projectCardsContainer = document.getElementById('project-cards-container');
 
             // --- State ---
             let currentFilters = [];
@@ -103,41 +103,41 @@
             let chatApp;
 
             // --- Data from Server ---
-            const TRAININGS = JSON.parse('{{ trainings_data | tojson }}');
+            const PROJECTS = JSON.parse('{{ projects_data | tojson }}');
             const USER_SKILLS = JSON.parse('{{ user_skills_data | tojson }}');
-
-            // 研修カードを表示する関数
-            const renderTrainingCards = (trainings) => {
-                trainingCardsContainer.innerHTML = '';
+            const USER = JSON.parse('{{ user | tojson }}');
+            console.log("【初期案件データ】", PROJECTS);
+            // 案件カードを表示する関数
+            const renderProjectCards = (projects) => {
+                projectCardsContainer.innerHTML = '';
                 
-                if (!trainings || trainings.length === 0) {
-                    trainingCardsContainer.innerHTML = '<p>条件に一致する研修が見つかりませんでした。</p>';
+                if (!projects || projects.length === 0) {
+                    projectCardsContainer.innerHTML = '<p>条件に一致する案件が見つかりませんでした。</p>';
                     return;
                 }
 
-                trainings.forEach(t => {
+                projects.forEach(p => {
                     const card = document.createElement('div');
                     card.className = 'c-card';
                     card.innerHTML = `
                         <div class="card__header">
-                            <h3 class="c-card__title">${t.title}</h3>
-                            ${t.matching_rate ? `<div class="card__matching" style="margin-top: 8px; font-weight: bold; color: var(--primary);">マッチング率: ${t.matching_rate}</div>` : ''}
+                            <h3 class="c-card__title">${p.project_name}</h3>
+                            <span class="card__category">${p.company}</span>
                         </div>
-                        <p class="card__description">${t.description}</p>
+                        <p class="card__description">${p.project_overview}</p>
                         <div class="card__meta">
-                            <span>レベル: ${t.level}</span>
-                            <span>期間: ${t.duration}</span>
+                            <span>勤務形態: ${p.employ_type}</span>
+                            <span>適合率: ${p.match_rate}%</span>
                         </div>
-                        ${t.held_at ? `<div class="card__meta"><span>開催日時: ${t.held_at}</span></div>` : ''}
-                        ${t.location ? `<div class="card__meta"><span>場所: ${t.location}</span></div>` : ''}
-                        ${t.target ? `<div class="card__meta"><span>対象: ${t.target}</span></div>` : ''}
+                        ${p.required_skills ? `<div class="card__meta"><span>必須スキル: ${p.required_skills}</span></div>` : ''}
+                        ${p.project_duration ? `<div class="card__meta"><span>勤務期間: ${p.project_duration}</span></div>` : ''}
                     `;
-                    trainingCardsContainer.appendChild(card);
+                    projectCardsContainer.appendChild(card);
                 });
             };
 
             // 検索結果表示のメイン処理
-            const displayTrainingResults = (filters, results) => {
+            const displayProjectResults = (filters, results) => {
                 currentFilters = filters || [];
 
                 initialMessage.classList.add('hidden');
@@ -155,8 +155,8 @@
                     filterDisplayArea.appendChild(tagEl);
                 });
 
-                // 研修カード表示 (filtered_results があればそれを使用、なければ TRAININGS 全件などを表示可能だが、基本は結果を待つ)
-                renderTrainingCards(results);
+                // 案件カード表示
+                renderProjectCards(results);
             };
 
             // フィルター削除イベント
@@ -214,10 +214,11 @@
                         message: message,
                         conversation_id: conversationId,
                         user_id: currentUserId,
-                        mode: "研修情報",
+                        mode: "案件情報",
                         current_conditions: currentFilters.join(','),
-                        training_sessions: JSON.stringify(TRAININGS),
-                        user_skills: JSON.stringify(USER_SKILLS)
+                        project_sessions: JSON.stringify(PROJECTS),
+                        user_skills: JSON.stringify(USER_SKILLS),
+                        user_info: JSON.stringify(USER)
                     };
 
                     const data = await sendToDify(payload);
@@ -230,13 +231,11 @@
                     // 1. メッセージ表示
                     appendMessage('assistant', parsedData.message || data.answer);
 
-                    // 2. 検索結果の更新 (filtered_results を優先して使用)
+                    // 2. 検索結果の更新
                     if (parsedData.filtered_results && Array.isArray(parsedData.filtered_results)) {
-                        displayTrainingResults(parsedData.conditions, parsedData.filtered_results);
+                        displayProjectResults(parsedData.conditions, parsedData.filtered_results);
                     } else if (parsedData.conditions && Array.isArray(parsedData.conditions)) {
-                        // fallback: 結果が直接来ない場合は条件だけ表示（ただし中身は空になる可能性があるため注意）
-                        // 今回の要件では filtered_results が来ること前提
-                        displayTrainingResults(parsedData.conditions, []); 
+                        displayProjectResults(parsedData.conditions, []); 
                     }
 
                     // 3. 提案ボタンの表示
@@ -249,9 +248,9 @@
             };
 
             chatApp = setupChat({
-                pageType: 'training',
+                pageType: 'project',
                 handleSubmit: handleChatSubmit,
-                initialMessage: 'こんにちは。ご希望の言語や難易度を教えていただければ、最適な研修を検索します。'
+                initialMessage: 'こんにちは。ご希望のスキルや条件を教えていただければ、最適な案件を検索します。'
             });
         });
     </script>

@@ -48,10 +48,11 @@
 
     .site-nav__link {
         display: inline-block;
-        padding: var(--space-1) var(--space-3);
+        padding: var(--space-1) var(--space-1);
         border: var(--border-standard);
         border-radius: var(--radius-s);
-        background-color: var(--mono-100);
+        /* background-color: var(--mono-100); */
+        color: var(--mono-100);
         font-size: var(--fs-data);
         font-weight: bold;
     }
@@ -179,6 +180,7 @@
             <a class="site-nav__link" href="{{ url_for('read_chat') }}">AIキャリアアドバイザー</a>
             <a class="site-nav__link" href="{{ url_for('read_roadmap') }}">ロードマップ</a>
             <a class="site-nav__link" href="{{ url_for('read_summary') }}">営業サマリー</a>
+            <a class="site-nav__link" href="{{ url_for('read_project') }}">案件検索</a>
             <a class="site-nav__link" href="{{ url_for('read_training') }}">研修検索</a>
             <a class="site-nav__link" href="{{ url_for('read_skill_check') }}">スキルチェック</a>
             <a class="site-nav__link" href="{{ url_for('read_practice') }}">問題練習</a>
