@@ -119,15 +119,16 @@
 
             // 条件表示
             const displayConditions = (conditions) => {
+                currentConditions = conditions || [];
                 conditionsArea.innerHTML = '';
-                conditions.forEach(skill => {
+                currentConditions.forEach(skill => {
                     const tagEl = document.createElement('span');
                     tagEl.className = 'filter-tag';
                     tagEl.dataset.skill = skill;
                     tagEl.innerHTML = `${skill}<button class="close-btn" title="削除">&times;</button>`;
                     conditionsArea.appendChild(tagEl);
                 });
-                if (conditions.length > 0) {
+                if (currentConditions.length > 0) {
                     document.getElementById('conditions-section').classList.remove('hidden');
                     document.getElementById('create-problem-btn-container').classList.remove('hidden');
                 } else {
@@ -135,14 +136,6 @@
                     document.getElementById('create-problem-btn-container').classList.add('hidden');
                 }
             };
-
-            // デバッグボタン: 条件追加
-            const debugAddBtn = document.getElementById('debug-add-conditions');
-            debugAddBtn.addEventListener('click', () => {
-                const updatedConditions = [...new Set([...currentConditions, 'Java'])];
-                currentConditions = updatedConditions;
-                displayConditions(currentConditions);
-            });
 
             // 問題作成ボタン
             const createProblemBtn = document.getElementById('create-problem-btn');
@@ -160,17 +153,12 @@
                         user_skills: JSON.stringify(USER_SKILLS),
                     };
 
-                    console.log('送信ペイロード:', payload);
-
                     const data = await sendToDify(payload);
 
                     if (data.conversation_id) conversationId = data.conversation_id;
 
-                    console.log('問題作成レスポンス:', data.answer);
-
                     const parsedData = parseDifyResponse(data.answer);
 
-                    console.log('パース後データ:', parsedData);
 
                     if (parsedData.question && parsedData.question.trim() !== '') {
                         problemData = {
@@ -231,8 +219,7 @@
                     // 条件更新
                     if (parsedData.conditions && Array.isArray(parsedData.conditions)) {
                         console.log('受信したconditions:', parsedData.conditions);
-                        currentConditions = parsedData.conditions;
-                        displayConditions(currentConditions);
+                        displayConditions(parsedData.conditions);
                     }
 
                     // 問題作成
@@ -278,15 +265,7 @@
                         user_skills: JSON.stringify(USER_SKILLS),
                     };
 
-                    console.log('送信ペイロード:', payload);
-
-                    const response = await fetch('/api/dify/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await response.json();
-
+                    const data = await sendToDify(payload);
                     const answerTextFromAPI = data.answer;
                     let resultData = { message: answerTextFromAPI };
                     try {
@@ -364,12 +343,7 @@
 
                     console.log('送信ペイロード:', payload);
 
-                    const response = await fetch('/api/dify/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await response.json();
+                    const data = await sendToDify(payload);
 
                     const hintFromAPI = data.answer;
                     hintText.textContent = hintFromAPI;
@@ -389,8 +363,7 @@
             conditionsArea.addEventListener('click', (e) => {
                 if (e.target.classList.contains('close-btn')) {
                     const skillToRemove = e.target.parentElement.dataset.skill;
-                    currentConditions = currentConditions.filter(s => s !== skillToRemove);
-                    e.target.parentElement.remove();
+                    displayConditions(currentConditions.filter(s => s !== skillToRemove));
                 }
             });
             
