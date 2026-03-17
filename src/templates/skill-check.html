@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ITスキルチェック</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/sidechat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/conditions.css') }}">
     <style>
         .practice-container {
@@ -86,7 +86,7 @@
             let questionsData = []; // 問題データを保存
 
             // --- Data from Server ---
-            const MOCK_USER_SKILLS = JSON.parse('{{ user_skills_data | tojson | safe }}') || [];
+            const USER_SKILLS = JSON.parse('{{ user_skills_data | tojson | safe }}') || [];
 
             const updateStartButtonVisibility = () => {
                 if (currentFilters.length >= 2) {
@@ -178,7 +178,7 @@
                         user_id: currentUserId,
                         mode: "スキルチェック出題",
                         current_conditions: currentFilters.join(','),
-                        user_skills: JSON.stringify(MOCK_USER_SKILLS),
+                        user_skills: JSON.stringify(USER_SKILLS),
                     };
                     console.log("【Debug】問題開始リクエスト:", requestPayload);
 
@@ -356,7 +356,7 @@
                         user_id: currentUserId,
                         mode: "スキルチェック条件設定",
                         current_conditions: currentFilters.join(','),
-                        user_skills: JSON.stringify(MOCK_USER_SKILLS),
+                        user_skills: JSON.stringify(USER_SKILLS),
                     };
 
                     const data = await sendToDify(payload);

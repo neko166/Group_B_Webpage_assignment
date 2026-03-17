@@ -4,8 +4,9 @@
         padding-bottom: 0;
     }
 
-    .site-header .l-container {
-        padding-left: 0;
+    .site-header {
+        max-width: 100%;
+        margin: 0;
     }
 
     .site-header__inner {
@@ -55,6 +56,110 @@
         font-weight: bold;
     }
 
+    .site-nav__user {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: var(--space-1) var(--space-3);
+        background: rgba(255,255,255,0.15);
+        border-radius: var(--radius-s);
+        font-size: var(--fs-data);
+        color: var(--mono-100);
+        font-weight: 600;
+        cursor: default;
+    }
+
+    .user-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #e63200;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: 2px solid rgba(255,255,255,0.6);
+    }
+
+    .user-menu-wrap {
+        position: relative;
+        margin-right: var(--space-3);
+    }
+
+    .user-menu-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: var(--space-1) var(--space-3);
+        background: rgba(255,255,255,0.15);
+        border-radius: var(--radius-s);
+        font-size: var(--fs-data);
+        color: var(--mono-100);
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        user-select: none;
+    }
+
+    .user-menu-trigger:hover {
+        background: rgba(255,255,255,0.25);
+    }
+
+    .user-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        min-width: 220px;
+        z-index: 1000;
+        overflow: hidden;
+    }
+
+    .user-dropdown.open {
+        display: block;
+    }
+
+    .user-dropdown-info {
+        padding: 16px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .user-dropdown-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 4px;
+    }
+
+    .user-dropdown-email {
+        font-size: 12px;
+        color: #888;
+    }
+
+    .user-dropdown-logout {
+        display: block;
+        width: 100%;
+        padding: 12px 16px;
+        text-align: left;
+        background: none;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        color: #e63200;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .user-dropdown-logout:hover {
+        background: #fff5f3;
+    }
+
     @media (max-width: 900px) {
         .site-header__inner {
             height: 72px;
@@ -62,18 +167,167 @@
     }
 </style>
 <header class="site-header">
-    <div class="l-container site-header__inner">
+    <div class="site-header__inner">
         <div class="site-logo-wrap" aria-label="Project Logo">
             <svg class="site-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 253">
                 <path fill="#e63200" d="M0 0 L119 0 L119 67 L42 127 L119 185 L119 252 L0 252 L0 185 L42 185 L42 67 L0 67 Z"/>
             </svg>
-            <a href="/"><span class="site-title">HumanCapitalStrategy System</span></a>
+            <a href="{{ url_for('read_dashboard') }}"><span class="site-title">AIキャリア成長支援システム</span></a>
         </div>
         <nav class="site-nav" aria-label="メインナビゲーション">
+            <a class="site-nav__link" href="{{ url_for('read_dashboard') }}">ダッシュボード</a>
+            <a class="site-nav__link" href="{{ url_for('read_chat') }}">AIキャリアアドバイザー</a>
+            <a class="site-nav__link" href="{{ url_for('read_roadmap') }}">ロードマップ</a>
+            <a class="site-nav__link" href="{{ url_for('read_summary') }}">営業サマリー</a>
             <a class="site-nav__link" href="{{ url_for('read_training') }}">研修検索</a>
             <a class="site-nav__link" href="{{ url_for('read_skill_check') }}">スキルチェック</a>
             <a class="site-nav__link" href="{{ url_for('read_practice') }}">問題練習</a>
+            {% if user %}
+            <div class="user-menu-wrap">
+                <button class="user-menu-trigger" id="userMenuTrigger" onclick="toggleUserMenu()">
+                    <span class="user-avatar">{{ user.name[0] }}</span>
+                    {{ user.name }}
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-info">
+                        <div class="user-dropdown-name">{{ user.name }}</div>
+                        <div class="user-dropdown-email">{{ user.email }}</div>
+                    </div>
+                    <button class="user-dropdown-logout" style="color:#1a1a2e;" onclick="openProfileModal()">プロフィール編集</button>
+                    <a class="user-dropdown-logout" href="/logout">ログアウト</a>
+                </div>
+            </div>
+            {% endif %}
         </nav>
         
     </div>
 </header>
+
+{% if user %}
+<!-- プロフィール編集モーダル -->
+<div id="profileModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;">
+      <h3 style="margin:0;font-size:16px;font-weight:700;">プロフィール編集</h3>
+      <button onclick="closeProfileModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;">×</button>
+    </div>
+    <div style="padding:16px 20px;">
+      <div class="profile-form-group">
+        <label>氏名</label>
+        <input type="text" id="pf_name" placeholder="田中 太郎">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="profile-form-group">
+          <label>年齢</label>
+          <input type="number" id="pf_age" placeholder="32" min="18" max="70">
+        </div>
+        <div class="profile-form-group">
+          <label>経験年数</label>
+          <input type="number" id="pf_exp" placeholder="8" min="0" max="50">
+        </div>
+      </div>
+      <div class="profile-form-group">
+        <label>稼働可能時期</label>
+        <input type="text" id="pf_available" placeholder="例：2026年4月〜、即日">
+      </div>
+      <div class="profile-form-group">
+        <label>勤務地（複数選択可）</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="pf_location_btns">
+          {% for loc in ['東京', '大阪', '名古屋', '福岡', '札幌', 'フルリモート', '一部リモート'] %}
+          <button type="button" class="location-btn" data-loc="{{ loc }}" onclick="toggleLocation(this)">{{ loc }}</button>
+          {% endfor %}
+        </div>
+        <input type="hidden" id="pf_locations">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="profile-form-group">
+          <label>希望単価（下限）万円/月</label>
+          <input type="number" id="pf_rate_min" placeholder="90" min="0">
+        </div>
+        <div class="profile-form-group">
+          <label>希望単価（上限）万円/月</label>
+          <input type="number" id="pf_rate_max" placeholder="120" min="0">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 16px;border-top:1px solid #f0f0f0;">
+      <button onclick="closeProfileModal()" style="padding:7px 18px;border:1px solid #e63200;background:#fff;color:#e63200;border-radius:6px;cursor:pointer;font-size:14px;">キャンセル</button>
+      <button onclick="saveProfile()" style="padding:7px 18px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">保存</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.profile-form-group { margin-bottom:14px; }
+.profile-form-group label { display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px; }
+.profile-form-group input { width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box; }
+.location-btn { padding:5px 14px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:12px;cursor:pointer;transition:all 0.15s; }
+.location-btn.selected { background:#1a1a2e;color:#fff;border-color:#1a1a2e; }
+</style>
+{% endif %}
+
+<script>
+function toggleUserMenu() {
+    document.getElementById('userDropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+    const trigger = document.getElementById('userMenuTrigger');
+    const dropdown = document.getElementById('userDropdown');
+    if (trigger && dropdown && !trigger.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+    }
+});
+
+const _HEADER_USER_ID = {{ user.user_id if user else 0 }};
+
+function openProfileModal() {
+    document.getElementById('userDropdown').classList.remove('open');
+    fetch('/users/' + _HEADER_USER_ID).then(r => r.json()).then(u => {
+        document.getElementById('pf_name').value      = u.name || '';
+        document.getElementById('pf_age').value       = u.age || '';
+        document.getElementById('pf_exp').value       = u.experience_years || '';
+        document.getElementById('pf_available').value = u.available_from || '';
+        document.getElementById('pf_rate_min').value  = u.desired_rate_min ? Math.round(u.desired_rate_min/10000) : '';
+        document.getElementById('pf_rate_max').value  = u.desired_rate_max ? Math.round(u.desired_rate_max/10000) : '';
+        const saved = (u.work_locations || '').split(',').map(s=>s.trim()).filter(Boolean);
+        document.getElementById('pf_locations').value = u.work_locations || '';
+        document.querySelectorAll('.location-btn').forEach(btn => {
+            btn.classList.toggle('selected', saved.includes(btn.dataset.loc));
+        });
+    });
+    const m = document.getElementById('profileModal');
+    m.style.display = 'flex';
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal').style.display = 'none';
+}
+
+function toggleLocation(btn) {
+    btn.classList.toggle('selected');
+    const selected = [...document.querySelectorAll('.location-btn.selected')].map(b => b.dataset.loc);
+    document.getElementById('pf_locations').value = selected.join(',');
+}
+
+async function saveProfile() {
+    const rateMin = document.getElementById('pf_rate_min').value;
+    const rateMax = document.getElementById('pf_rate_max').value;
+    const payload = {
+        name:             document.getElementById('pf_name').value.trim() || undefined,
+        age:              document.getElementById('pf_age').value ? parseInt(document.getElementById('pf_age').value) : undefined,
+        experience_years: document.getElementById('pf_exp').value ? parseInt(document.getElementById('pf_exp').value) : undefined,
+        available_from:   document.getElementById('pf_available').value.trim() || undefined,
+        work_locations:   document.getElementById('pf_locations').value || undefined,
+        desired_rate_min: rateMin ? parseInt(rateMin) * 10000 : undefined,
+        desired_rate_max: rateMax ? parseInt(rateMax) * 10000 : undefined,
+    };
+    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+    await fetch('/users/' + _HEADER_USER_ID, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    closeProfileModal();
+    location.reload();
+}
+</script>

@@ -1,0 +1,407 @@
+/* ============================================================
+   dashboard.css – ダッシュボード専用スタイル
+   ※ style.css の共通スタイルを前提とする
+   ============================================================ */
+
+/* ===== メインレイアウト ===== */
+.dashboard-main {
+  padding: 24px 16px 60px;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: var(--mono-100);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-mid);
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  border-left: 3px solid var(--orange);
+  padding-left: 8px;
+}
+
+/* ===== ロールセクション ===== */
+.role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.role-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-dark);
+}
+
+.role-badge {
+  display: inline-block;
+  background: var(--orange-pale);
+  color: var(--orange);
+  border: 1px solid var(--orange);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* ===== ボタン（ダッシュボード上書き） ===== */
+
+/* 小さいオレンジアウトラインボタン（詳細/編集/削除/変更） */
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 20px;
+  border: 1px solid var(--orange) !important;
+  background: var(--mono-100) !important;
+  color: var(--orange) !important;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-sm:hover {
+  opacity: 1 !important;
+  background: var(--orange) !important;
+  color: var(--mono-100) !important;
+}
+
+/* 中サイズのオレンジアウトラインボタン（モーダルのキャンセル/閉じる） */
+.btn-outline {
+  padding: 7px 18px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid var(--orange) !important;
+  background: var(--mono-100) !important;
+  color: var(--orange) !important;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-outline:hover {
+  opacity: 1 !important;
+  background: var(--orange) !important;
+  color: var(--mono-100) !important;
+}
+
+/* 削除ボタン（btn-sm と同じスタイルで統一） */
+.btn-danger {
+  border: 1px solid var(--orange) !important;
+  color: var(--orange) !important;
+  background: var(--mono-100) !important;
+}
+.btn-danger:hover {
+  background: var(--orange) !important;
+  color: var(--mono-100) !important;
+  opacity: 1 !important;
+}
+
+/* ソリッドオレンジボタン（保存/追加） */
+.btn-primary {
+  background-color: var(--orange) !important;
+  color: var(--mono-100) !important;
+  border: none !important;
+}
+.btn-primary:hover {
+  background-color: var(--orange-light) !important;
+  opacity: 1 !important;
+}
+
+/* ===== レーダーチャート ===== */
+.radar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+#radarCanvas { display: block; }
+
+.radar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7f7f7;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px 4px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--orange);
+  flex-shrink: 0;
+}
+
+.legend-level {
+  font-weight: 700;
+  color: var(--orange);
+  font-size: 11px;
+  margin-left: 2px;
+}
+
+/* ===== 2カラムレイアウト ===== */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ===== 職務経歴 ===== */
+.career-item {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--mono-100);
+}
+.career-item:last-child { margin-bottom: 0; }
+
+.career-name  { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.career-meta  { font-size: 12px; color: var(--gray-mid); margin-bottom: 2px; }
+
+.career-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 8px;
+}
+
+.tech-tag {
+  background: #f5f5f5;
+  border: 1px solid var(--border);
+  color: var(--gray-mid);
+  border-radius: 3px;
+  padding: 1px 7px;
+  font-size: 11px;
+}
+
+.career-actions { display: flex; gap: 6px; }
+
+/* ===== スキルテーブル ===== */
+.skill-table { width: 100%; border-collapse: collapse; }
+
+.skill-table th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--gray-light);
+  padding: 0 8px 8px 0;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.skill-table td {
+  padding: 8px 8px 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.skill-category {
+  background: #f0f0f0;
+  color: var(--gray-mid);
+  border-radius: 3px;
+  padding: 1px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.stars        { color: var(--orange); letter-spacing: 1px; font-size: 13px; }
+.stars-empty  { color: #ddd; }
+.skill-actions  { display: flex; gap: 4px; }
+.add-skill-row  { margin-top: 12px; }
+
+/* ===== スター評価（スキル追加モーダル内） ===== */
+.star-rating { display: flex; gap: 6px; margin-top: 4px; }
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #ddd;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.1s;
+}
+.star-btn.active { color: var(--orange); }
+
+/* ===== おすすめ研修 ===== */
+.training-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.training-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: var(--mono-100);
+}
+
+.training-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--orange);
+  color: white;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.training-name { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+
+.training-match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.match-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.match-bar {
+  height: 100%;
+  background: var(--orange);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.match-pct { font-size: 12px; font-weight: 700; color: var(--orange); min-width: 35px; }
+
+/* ===== 詳細・確認モーダル内 ===== */
+.detail-row {
+  display: flex;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 8px 0;
+  font-size: 13px;
+}
+.detail-row:last-child { border-bottom: none; }
+
+.detail-label {
+  width: 90px;
+  font-weight: 600;
+  color: var(--gray-mid);
+  flex-shrink: 0;
+}
+
+.detail-value { color: var(--gray-dark); }
+
+.confirm-text { font-size: 14px; margin-bottom: 6px; }
+.confirm-sub  { font-size: 12px; color: var(--gray-mid); }
+
+/* ===== モーダル ===== */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: var(--z-modal);
+  align-items: center;
+  justify-content: center;
+}
+.modal-backdrop.open {
+  display: flex;
+}
+
+.modal {
+  background: var(--mono-100);
+  border-radius: 8px;
+  width: 480px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h3 { font-size: 16px; font-weight: 700; margin: 0; }
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--gray-light);
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close:hover { color: var(--gray-dark); }
+
+.modal-body {
+  padding: 16px 20px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-mid);
+  margin-bottom: 4px;
+}
+
+/* input[type="month"] をフォームスタイルに含める */
+input[type="month"] {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  color: inherit;
+  background-color: var(--mono-100);
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 1024px) {
+  .training-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  .two-col       { grid-template-columns: 1fr; }
+  .training-grid { grid-template-columns: 1fr; }
+}

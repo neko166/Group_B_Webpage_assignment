@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>研修案内</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/sidechat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/conditions.css') }}">
     <style>
         /* --- Layout --- */
@@ -66,7 +66,7 @@
         <main id="main-area" class="main-area">
             <h2>研修検索</h2>
             <div id="initial-message">
-                <p>右側のチャットで、希望する研修についてお聞かせください。</p>
+                <p>右側のチャットで、希望する研修の条件を設定してください。</p>
             </div>
 
             <div id="results-area" class="hidden">
@@ -103,8 +103,8 @@
             let chatApp;
 
             // --- Data from Server ---
-            const MOCK_TRAININGS = JSON.parse('{{ trainings_data | tojson }}');
-            const MOCK_USER_SKILLS = JSON.parse('{{ user_skills_data | tojson }}');
+            const TRAININGS = JSON.parse('{{ trainings_data | tojson }}');
+            const USER_SKILLS = JSON.parse('{{ user_skills_data | tojson }}');
 
             // 研修カードを表示する関数
             const renderTrainingCards = (trainings) => {
@@ -153,7 +153,7 @@
                     filterDisplayArea.appendChild(tagEl);
                 });
 
-                // 研修カード表示 (filtered_results があればそれを使用、なければ MOCK_TRAININGS 全件などを表示可能だが、基本は結果を待つ)
+                // 研修カード表示 (filtered_results があればそれを使用、なければ TRAININGS 全件などを表示可能だが、基本は結果を待つ)
                 renderTrainingCards(results);
             };
 
@@ -214,8 +214,8 @@
                         user_id: currentUserId,
                         mode: "研修情報",
                         current_conditions: currentFilters.join(','),
-                        training_sessions: JSON.stringify(MOCK_TRAININGS),
-                        user_skills: JSON.stringify(MOCK_USER_SKILLS)
+                        training_sessions: JSON.stringify(TRAININGS),
+                        user_skills: JSON.stringify(USER_SKILLS)
                     };
 
                     const data = await sendToDify(payload);

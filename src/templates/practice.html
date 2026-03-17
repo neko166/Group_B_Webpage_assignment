@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IT問題練習ページ</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/sidechat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/conditions.css') }}">
     <style>
         /* --- Layout --- */
@@ -46,8 +46,7 @@
         <main id="problem-area" class="problem-area">
             <h2>問題練習</h2>
             <div id="initial-message">
-                <p>右側のチャットで「Pythonのリスト操作の問題を出して」のように、挑戦したい問題について話しかけてください。</p>
-                <button id="debug-add-conditions" class="btn btn-secondary mt-2" style="font-size: 0.8rem; padding: 2px 8px;">(Debug) Java 追加</button>
+                <p>右側のチャットで挑戦したい問題の出題条件を設定してください。</p>
             </div>
 
             <!-- 条件表示エリア -->
@@ -115,6 +114,9 @@
             const currentUserId = 'user-' + Math.random().toString(36).substr(2, 9);
             let problemData = null; // 問題データを保存
 
+            // --- Data from Server ---
+            const USER_SKILLS = JSON.parse('{{ user_skills_data | tojson }}');
+
             // 条件表示
             const displayConditions = (conditions) => {
                 conditionsArea.innerHTML = '';
@@ -155,6 +157,7 @@
                         user_id: currentUserId,
                         mode: "問題作成",
                         current_conditions: currentConditions.join(','),
+                        user_skills: JSON.stringify(USER_SKILLS),
                     };
 
                     console.log('送信ペイロード:', payload);
@@ -213,6 +216,7 @@
                         user_id: currentUserId,
                         mode: "出題設定",
                         current_conditions: currentConditions.join(','),
+                        user_skills: JSON.stringify(USER_SKILLS),
                     };
 
                     const data = await sendToDify(payload);
@@ -271,6 +275,7 @@
                         user_id: currentUserId,
                         mode: "解答判定",
                         practice_answer: answerText,
+                        user_skills: JSON.stringify(USER_SKILLS),
                     };
 
                     console.log('送信ペイロード:', payload);
@@ -354,6 +359,7 @@
                         mode: "サポート",
                         hint_request: true,
                         practice_answer: answerInput.value.trim(),
+                        user_skills: JSON.stringify(USER_SKILLS),
                     };
 
                     console.log('送信ペイロード:', payload);
