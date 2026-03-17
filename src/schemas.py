@@ -87,6 +87,7 @@ class UserUpdate(BaseModel):
     experience_years: Optional[int] = None
     available_from:   Optional[str] = None
     work_locations:   Optional[str] = None
+    work_conditions:  Optional[str] = None
     desired_rate_min: Optional[int] = None
     desired_rate_max: Optional[int] = None
 
@@ -96,6 +97,7 @@ class UserResponse(UserBase):
     experience_years: Optional[int] = None
     available_from:   Optional[str] = None
     work_locations:   Optional[str] = None
+    work_conditions:  Optional[str] = None
     desired_rate_min: Optional[int] = None
     desired_rate_max: Optional[int] = None
     class Config:

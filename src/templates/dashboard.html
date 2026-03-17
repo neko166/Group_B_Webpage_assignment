@@ -36,10 +36,16 @@
   <!-- 保有スキルマップ -->
   <div class="card">
     <div class="card-title">保有スキルマップ</div>
+    <div class="skill-stats-grid" id="skillStatsGrid"></div>
+    <div class="chart-tab-bar">
+      <button class="chart-tab active" id="tabRadar" onclick="setChartMode('radar')">カテゴリレーダー</button>
+      <button class="chart-tab" id="tabBar" onclick="setChartMode('bar')">スキル詳細</button>
+    </div>
     <div class="radar-wrapper">
       <canvas id="radarCanvas" width="400" height="360"></canvas>
       <div class="radar-legend" id="radarLegend"></div>
     </div>
+    <div id="barChartWrapper" style="display:none"></div>
   </div>
 
   <!-- 職務経歴 + スキル一覧 -->
@@ -56,7 +62,10 @@
 
     <!-- 保有スキル一覧 -->
     <div class="card" style="margin-bottom:0">
-      <div class="card-title">保有スキル一覧</div>
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+        保有スキル一覧<span class="skill-count-badge" id="skillCount"></span>
+      </div>
+      <div class="cat-tabs" id="catTabs"></div>
       <table class="skill-table">
         <thead>
           <tr>
@@ -97,16 +106,48 @@
       <div class="form-group">
         <label>ロール選択</label>
         <select id="currentRoleSelect">
-          <option>インフラエンジニア</option>
-          <option>バックエンドエンジニア</option>
-          <option>フロントエンドエンジニア</option>
-          <option>フルスタックエンジニア</option>
-          <option>データエンジニア</option>
-          <option>機械学習エンジニア</option>
-          <option>DevOpsエンジニア</option>
-          <option>プロジェクトマネージャー</option>
-          <option>テックリード</option>
-          <option>アーキテクト</option>
+          <optgroup label="── エンジニア（開発） ──">
+            <option>バックエンドエンジニア</option>
+            <option>フロントエンドエンジニア</option>
+            <option>フルスタックエンジニア</option>
+            <option>モバイルエンジニア（iOS）</option>
+            <option>モバイルエンジニア（Android）</option>
+            <option>ゲームエンジニア</option>
+            <option>組み込みエンジニア</option>
+            <option>ブロックチェーンエンジニア</option>
+          </optgroup>
+          <optgroup label="── エンジニア（インフラ・クラウド） ──">
+            <option>インフラエンジニア</option>
+            <option>クラウドエンジニア</option>
+            <option>DevOpsエンジニア</option>
+            <option>SREエンジニア</option>
+            <option>ネットワークエンジニア</option>
+            <option>セキュリティエンジニア</option>
+          </optgroup>
+          <optgroup label="── データ・AI ──">
+            <option>データエンジニア</option>
+            <option>データサイエンティスト</option>
+            <option>機械学習エンジニア</option>
+            <option>AIエンジニア</option>
+            <option>データベース管理者（DBA）</option>
+          </optgroup>
+          <optgroup label="── 業務系・ERP ──">
+            <option>業務アプリケーションエンジニア</option>
+            <option>ERPエンジニア</option>
+            <option>CRM/SFAエンジニア</option>
+          </optgroup>
+          <optgroup label="── QA・デザイン ──">
+            <option>QAエンジニア</option>
+            <option>UI/UXデザイナー</option>
+            <option>テクニカルライター</option>
+          </optgroup>
+          <optgroup label="── マネジメント・リード ──">
+            <option>テックリード</option>
+            <option>アーキテクト</option>
+            <option>プロジェクトマネージャー</option>
+            <option>プロダクトマネージャー</option>
+            <option>スクラムマスター</option>
+          </optgroup>
         </select>
       </div>
     </div>
@@ -129,13 +170,33 @@
         <label>目標ロール（自由入力またはサジェストから選択）</label>
         <input type="text" id="targetRoleInput" list="targetRoleSuggests" placeholder="例：機械学習エンジニア">
         <datalist id="targetRoleSuggests">
+          <option value="バックエンドエンジニア">
+          <option value="フロントエンドエンジニア">
+          <option value="フルスタックエンジニア">
+          <option value="モバイルエンジニア（iOS）">
+          <option value="モバイルエンジニア（Android）">
+          <option value="インフラエンジニア">
+          <option value="クラウドエンジニア">
+          <option value="DevOpsエンジニア">
+          <option value="SREエンジニア">
+          <option value="ネットワークエンジニア">
+          <option value="セキュリティエンジニア">
+          <option value="データエンジニア">
+          <option value="データサイエンティスト">
           <option value="機械学習エンジニア">
-          <option value="プロジェクトマネージャー">
+          <option value="AIエンジニア">
+          <option value="データベース管理者（DBA）">
+          <option value="業務アプリケーションエンジニア">
+          <option value="ERPエンジニア">
+          <option value="QAエンジニア">
+          <option value="UI/UXデザイナー">
           <option value="テックリード">
           <option value="アーキテクト">
-          <option value="CTOエンジニア">
-          <option value="データサイエンティスト">
           <option value="クラウドアーキテクト">
+          <option value="プロジェクトマネージャー">
+          <option value="プロダクトマネージャー">
+          <option value="スクラムマスター">
+          <option value="CTO">
         </datalist>
       </div>
     </div>

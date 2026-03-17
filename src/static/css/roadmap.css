@@ -9,6 +9,10 @@
 /* ===== ページヘッダー ===== */
 .roadmap-page-header {
   margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .roadmap-title {
@@ -65,6 +69,8 @@
   font-size: 14px;
 }
 
+.roadmap-loading p { margin: 0; }
+
 .loading-spinner {
   width: 40px; height: 40px;
   border: 3px solid #eee;
@@ -73,6 +79,77 @@
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== 生成中トースト（画面上部固定） ===== */
+#generateToast {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: linear-gradient(90deg, #1a1a2e 0%, #2d2d4e 100%);
+  color: white;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+#generateToast.visible {
+  display: flex;
+}
+
+.toast-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.toast-text { flex: 1; text-align: center; }
+
+.toast-timer {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.6);
+  min-width: 60px;
+  text-align: right;
+}
+
+.toast-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--orange);
+  animation: toast-progress 90s linear forwards;
+  width: 0%;
+}
+
+@keyframes toast-progress {
+  from { width: 0%; }
+  to   { width: 92%; }
+}
+
+/* ===== ボタン内スピナー ===== */
+.btn-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
 
 /* ===== 空状態 ===== */
 .roadmap-empty {

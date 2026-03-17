@@ -36,6 +36,8 @@ let editingCareerId = null;   // CareerHistory.career_id
 let confirmCallback = null;
 let starLevel       = 3;
 let skillMaster     = [];     // Skill master list from API
+let chartMode       = 'radar';
+let skillFilter     = 'all';
 
 // ===== スキルマスタ読み込み =====
 async function loadSkillMaster() {
@@ -81,6 +83,127 @@ async function reloadCareers() {
   }
 }
 
+// ===== カテゴリ集計 =====
+function buildCategoryData() {
+  const map = {};
+  skills.forEach(s => {
+    const cat = s.category || 'その他';
+    if (!map[cat]) map[cat] = { total: 0, count: 0 };
+    map[cat].total += s.skill_level;
+    map[cat].count++;
+  });
+  return Object.entries(map)
+    .map(([name, v]) => ({ name, avg: v.total / v.count, count: v.count }))
+    .sort((a, b) => b.avg - a.avg);
+}
+
+// ===== スキルKPIサマリー =====
+function renderSkillStats() {
+  const el = document.getElementById('skillStatsGrid');
+  if (!el) return;
+  if (skills.length === 0) { el.innerHTML = ''; return; }
+  const total = skills.length;
+  const avgLevel = (skills.reduce((s, x) => s + x.skill_level, 0) / total).toFixed(1);
+  const catData = buildCategoryData();
+  const catCount = catData.length;
+  const topCat = catData[0] ? catData[0].name : '-';
+  el.innerHTML = `
+    <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-label">保有スキル数</div></div>
+    <div class="stat-card"><div class="stat-val">${avgLevel}</div><div class="stat-label">平均レベル</div></div>
+    <div class="stat-card"><div class="stat-val">${catCount}</div><div class="stat-label">カバー領域数</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:${topCat.length > 8 ? '11px' : '16px'}">${topCat}</div><div class="stat-label">得意領域</div></div>
+  `;
+}
+
+// ===== チャート切替 =====
+function setChartMode(mode) {
+  chartMode = mode;
+  document.getElementById('tabRadar').classList.toggle('active', mode === 'radar');
+  document.getElementById('tabBar').classList.toggle('active', mode === 'bar');
+  const radarWrapper = document.querySelector('.radar-wrapper');
+  const barWrapper = document.getElementById('barChartWrapper');
+  if (radarWrapper) radarWrapper.style.display = mode === 'radar' ? '' : 'none';
+  if (barWrapper) barWrapper.style.display = mode === 'bar' ? '' : 'none';
+  if (mode === 'radar') { drawRadar(); renderRadarLegend(); }
+  else drawSkillBars();
+}
+
+// ===== スキル詳細バーチャート =====
+function drawSkillBars() {
+  const el = document.getElementById('barChartWrapper');
+  if (!el) return;
+  if (skills.length === 0) {
+    el.innerHTML = '<p style="color:var(--gray-light);font-size:13px;padding:16px 0 8px">スキルがありません</p>';
+    return;
+  }
+  const catMap = {};
+  skills.forEach(s => {
+    const cat = s.category || 'その他';
+    if (!catMap[cat]) catMap[cat] = [];
+    catMap[cat].push(s);
+  });
+  Object.values(catMap).forEach(arr => arr.sort((a, b) => b.skill_level - a.skill_level));
+  el.innerHTML = Object.entries(catMap).map(([cat, items]) => `
+    <div class="bar-group">
+      <div class="bar-group-title">${cat}<span class="bar-group-count">${items.length}スキル</span></div>
+      ${items.map(s => `
+        <div class="bar-row">
+          <div class="bar-name" title="${s.skill_name}">${s.skill_name}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${s.skill_level / 5 * 100}%"></div></div>
+          <div class="bar-level">Lv.${s.skill_level}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+// ===== カテゴリフィルタータブ =====
+function renderCatTabs() {
+  const el = document.getElementById('catTabs');
+  if (!el) return;
+  const cats = [...new Set(skills.map(s => s.category || 'その他'))];
+  if (cats.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = [
+    `<button class="cat-tab${skillFilter === 'all' ? ' active' : ''}" onclick="setSkillFilter('all')">すべて</button>`,
+    ...cats.map(c => `<button class="cat-tab${skillFilter === c ? ' active' : ''}" onclick="setSkillFilter('${c.replace(/'/g, "\\'")}')">${c}</button>`)
+  ].join('');
+}
+
+function setSkillFilter(cat) {
+  skillFilter = cat;
+  renderCatTabs();
+  renderFilteredSkills();
+}
+
+// ===== フィルター適用スキルテーブル描画 =====
+function renderFilteredSkills() {
+  const filtered = skillFilter === 'all'
+    ? skills
+    : skills.filter(s => (s.category || 'その他') === skillFilter);
+  const sorted = [...filtered].sort((a, b) => b.skill_level - a.skill_level);
+
+  const badge = document.getElementById('skillCount');
+  if (badge) badge.textContent = `${skills.length}件`;
+
+  const tbody = document.getElementById('skillTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = sorted.map(s => `
+    <tr>
+      <td style="font-weight:600">${s.skill_name}</td>
+      <td><span class="skill-category">${s.category || ''}</span></td>
+      <td>
+        <span class="stars">${'★'.repeat(s.skill_level)}</span><span class="stars-empty">${'★'.repeat(5 - s.skill_level)}</span>
+      </td>
+      <td>
+        <div class="skill-actions">
+          <button class="btn btn-sm" onclick="openEditSkill(${s.id})">編集</button>
+          <button class="btn btn-sm btn-danger" onclick="confirmDelete('skill',${s.id},'${s.skill_name.replace(/'/g, "\\'")}')">削除</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
 // ===== 現在ロール =====
 async function saveCurrentRole() {
   const v = document.getElementById('currentRoleSelect').value;
@@ -117,24 +240,11 @@ function setStars(n) {
 // ===== スキル描画 =====
 // サーバーJSON: { id, skill_id, skill_name, category, skill_level }
 function renderSkills() {
-  const tbody = document.getElementById('skillTableBody');
-  tbody.innerHTML = skills.map(s => `
-    <tr>
-      <td style="font-weight:600">${s.skill_name}</td>
-      <td><span class="skill-category">${s.category || ''}</span></td>
-      <td>
-        <span class="stars">${'★'.repeat(s.skill_level)}</span><span class="stars-empty">${'★'.repeat(5 - s.skill_level)}</span>
-      </td>
-      <td>
-        <div class="skill-actions">
-          <button class="btn btn-sm" onclick="openEditSkill(${s.id})">編集</button>
-          <button class="btn btn-sm btn-danger" onclick="confirmDelete('skill',${s.id},'${s.skill_name}')">削除</button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
-  drawRadar();
-  renderRadarLegend();
+  renderSkillStats();
+  renderCatTabs();
+  renderFilteredSkills();
+  if (chartMode === 'radar') { drawRadar(); renderRadarLegend(); }
+  else drawSkillBars();
 }
 
 function openAddSkill() {
@@ -169,11 +279,11 @@ async function saveSkill() {
       // 編集: レベルのみ更新
       await apiFetch(`/users/${USER_ID}/skills/${editingSkillId}`, 'PATCH', { skill_level: starLevel });
     } else {
-      // 新規: マスタからskill_idを解決
-      const master = skillMaster.find(s => s.skill_name === nameInput);
+      // 新規: マスタからskill_idを解決。なければ新規マスタ登録
+      let master = skillMaster.find(s => s.skill_name === nameInput);
       if (!master) {
-        alert('スキルマスタに存在しないスキルです。リストから選択してください。');
-        return;
+        master = await apiFetch('/users/skills/master', 'POST', { skill_name: nameInput, category: null });
+        if (master) skillMaster.push(master);
       }
       await apiFetch(`/users/${USER_ID}/skills`, 'POST', { skill_id: master.skill_id, skill_level: starLevel });
     }
@@ -335,7 +445,7 @@ function applyTraining() {
   alert('申し込みを受け付けました。社内掲示板の申請システムへ連携します。');
 }
 
-// ===== レーダーチャート（スキル名＋レベルで描画） =====
+// ===== レーダーチャート（カテゴリ平均レベルで描画・スキル数無制限） =====
 function drawRadar() {
   const canvas = document.getElementById('radarCanvas');
   if (!canvas) return;
@@ -343,15 +453,24 @@ function drawRadar() {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
+  // カテゴリ集計（最大10カテゴリ）
+  const catData = buildCategoryData().slice(0, 10);
+  const n = catData.length;
+
+  if (n < 3) {
+    ctx.fillStyle = '#bbb';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('3カテゴリ以上のスキルを追加するとチャートが表示されます', W / 2, H / 2);
+    return;
+  }
+
   const cx = W / 2, cy = H / 2;
-  const maxR = Math.min(cx, cy) - 52;
+  const maxR = Math.min(cx, cy) - 58;
   const maxLevel = 5;
   const ORANGE        = '#c84b11';
   const ORANGE_STROKE = 'rgba(200,75,17,0.85)';
-
-  const data = skills.slice(0, 8);
-  const n = data.length;
-  if (n < 3) return;
 
   const angle = i => (Math.PI * 2 * i / n) - Math.PI / 2;
   const pt    = (i, r) => ({ x: cx + r * Math.cos(angle(i)), y: cy + r * Math.sin(angle(i)) });
@@ -413,10 +532,10 @@ function drawRadar() {
     }
   }
 
-  // データポリゴン
+  // データポリゴン（カテゴリ平均レベル使用）
   ctx.beginPath();
-  data.forEach((s, i) => {
-    const r = (s.skill_level / maxLevel) * maxR;
+  catData.forEach((d, i) => {
+    const r = (d.avg / maxLevel) * maxR;
     const p = pt(i, r);
     i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
   });
@@ -432,8 +551,8 @@ function drawRadar() {
   ctx.stroke();
 
   // データ点
-  data.forEach((s, i) => {
-    const r = (s.skill_level / maxLevel) * maxR;
+  catData.forEach((d, i) => {
+    const r = (d.avg / maxLevel) * maxR;
     const p = pt(i, r);
     ctx.beginPath();
     ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
@@ -449,39 +568,45 @@ function drawRadar() {
     ctx.fill();
   });
 
-  // スキル名ラベル（ピル背景）
-  data.forEach((s, i) => {
+  // カテゴリ名ラベル（ピル背景＋スキル件数）
+  catData.forEach((d, i) => {
     const a      = angle(i);
-    const labelR = maxR + 28;
+    const labelR = maxR + 30;
     const lx     = cx + labelR * Math.cos(a);
     const ly     = cy + labelR * Math.sin(a);
+    const label  = d.name.length > 9 ? d.name.slice(0, 8) + '…' : d.name;
     ctx.font     = 'bold 11px sans-serif';
-    const tw     = ctx.measureText(s.skill_name).width;
+    const tw     = ctx.measureText(label).width;
     const pw = tw + 12, ph = 18;
-    ctx.fillStyle = 'rgba(72,72,72,0.85)';
+    ctx.fillStyle = 'rgba(52,52,52,0.88)';
     ctx.beginPath();
     ctx.roundRect(lx - pw / 2, ly - ph / 2, pw, ph, 5);
     ctx.fill();
     ctx.fillStyle    = 'white';
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(s.skill_name, lx, ly);
+    ctx.fillText(label, lx, ly);
+    // スキル件数サブテキスト
+    ctx.font      = '9px sans-serif';
+    ctx.fillStyle = 'rgba(200,75,17,0.9)';
+    ctx.fillText(`avg ${d.avg.toFixed(1)} (${d.count}件)`, lx, ly + 14);
   });
 }
 
 function renderRadarLegend() {
   const el = document.getElementById('radarLegend');
   if (!el) return;
-  const data = skills.slice(0, 8);
-  if (data.length === 0) {
+  const catData = buildCategoryData().slice(0, 10);
+  if (catData.length === 0) {
     el.innerHTML = '<span style="font-size:12px;color:var(--gray-light)">スキルを追加するとチャートが表示されます</span>';
     return;
   }
-  el.innerHTML = data.map(s => `
+  el.innerHTML = catData.map(d => `
     <div class="legend-item">
       <div class="legend-dot"></div>
-      <span style="font-weight:600">${s.skill_name}</span>
-      <span class="legend-level">Lv.${s.skill_level}</span>
+      <span style="font-weight:600">${d.name}</span>
+      <span class="legend-level">avg ${d.avg.toFixed(1)}</span>
+      <span style="font-size:10px;color:var(--gray-light);margin-left:2px">${d.count}件</span>
     </div>
   `).join('');
 }

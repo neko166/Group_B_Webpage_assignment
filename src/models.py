@@ -20,7 +20,8 @@ class User(Base):
     age              = Column(Integer,     nullable=True)             # 年齢
     experience_years = Column(Integer,     nullable=True)             # 経験年数
     available_from   = Column(String(50),  nullable=True)             # 稼働可能時期
-    work_locations   = Column(String(500), nullable=True)             # 勤務地（カンマ区切り）
+    work_locations   = Column(String(500), nullable=True)             # 勤務地（都道府県カンマ区切り）
+    work_conditions  = Column(String(500), nullable=True)             # その他条件（フルリモート可等）
     desired_rate_min = Column(Integer,     nullable=True)             # 希望単価（下限）
     desired_rate_max = Column(Integer,     nullable=True)             # 希望単価（上限）
 

@@ -58,7 +58,11 @@ async def _call_ollama(prompt: str) -> str:
             )
             resp.raise_for_status()
             return resp.json().get("response", "").strip()
-        resp.raise_for_status()
+        if not resp.is_success:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Ollama エラー (HTTP {resp.status_code}): {resp.text[:500]}"
+            )
         return resp.json()["message"]["content"].strip()
 
 
@@ -116,83 +120,104 @@ async def generate_roadmap(
     ]) or "研修情報なし"
 
     # ── LLM プロンプト構築 ──
-    prompt = f"""あなたはエンジニアのキャリアアドバイザーです。
-以下のユーザー情報を元に、「現在のロール」から「目標ロール」に到達するための具体的なキャリアロードマップをJSON形式で生成してください。
+    current_role = user.current_role or "エンジニア"
+    prompt = f"""JSONのみ出力。説明文・コードブロック不要。
 
-【ユーザー情報】
-- 現在のロール: {user.current_role or "未設定"}
-- 目標ロール: {target_role}
-- 氏名: {user.name}
+対象者: {current_role} → {target_role} へのキャリア転換を目指すエンジニア
+保有スキル: {skills_text}
+職務経歴: {career_text}
 
-【保有スキル】
-{skills_text}
+上記の「{current_role}」が「{target_role}」になるための4段階ロードマップを作成し、以下の仕様でJSONを出力してください。
 
-【職務経歴】
-{career_text}
+仕様:
+- steps配列に4要素
+- step 1: title="{current_role}", status="completed", progress=100, duration="現在", description={current_role}の業務説明(40〜80字)
+- step 2: title={current_role}からのステップアップ職種(シニア/リード/スペシャリスト等の実在職種名), status="current", progress=40
+- step 3: title={target_role}へ近づく隣接職種(実在職種名), status="upcoming", progress=0
+- step 4: title="{target_role}", status="upcoming", progress=0, duration=X〜Xヶ月
+- 全stepにskills_to_acquire(3〜5個の具体的スキル名)とdescription(40〜80字)を付与
+- overall_progressは20〜30, estimated_total_durationは合計期間
+- 禁止: titleに「中間」「ステップ」「ロール名」などの抽象語を使わないこと
 
-【社内研修情報】
-{training_text}
+JSON:"""
 
-【最重要ルール】
-- 必ず「現在のロール（{user.current_role or "現在地"}）」から始まり、「目標ロール（{target_role}）」で終わるロードマップを作成すること
-- 各ステップは現在ロールから目標ロールへの道筋となる具体的な職種・役割を表すこと
-- ステップ1は現在のロールを表し status を "completed" または "current" にすること
-- 最後のステップは必ず目標ロール（{target_role}）にすること
-- 最後のステップ（目標ロール）の status は必ず "upcoming" にすること（目標はまだ未達成であるため）
-- ユーザーの現在スキル・経歴を活かして現実的な段階を設定すること
-- すべてのフィールド（title・description・skills_to_acquire）は必ず日本語で記述すること。英語は絶対に使用しないこと
+    # ── プレースホルダー検出ヘルパー ──
+    _PLACEHOLDER_PATTERNS = [
+        "中間ロール名", "ステップ名", "ロール名", "スキル例",
+        "このステップで習得する内容", "現在担当している業務内容の説明",
+        "目標とするロールの説明", "X〜X", "合計期間",
+    ]
 
-【出力形式】
-以下のJSON形式のみで回答してください。説明文や```は不要です。
+    def _is_valid_roadmap(data: dict) -> bool:
+        steps = data.get("steps", [])
+        if len(steps) < 2:
+            return False
+        for step in steps:
+            text = " ".join([
+                str(step.get("title", "")),
+                str(step.get("description", "")),
+                str(step.get("duration", "")),
+            ])
+            if any(pat in text for pat in _PLACEHOLDER_PATTERNS):
+                print(f"[roadmap] プレースホルダー検出: {text[:120]}")
+                return False
+        # 最終ステップのtitleが目標ロールと一致するか確認
+        last_title = steps[-1].get("title", "")
+        if target_role and last_title and target_role not in last_title and last_title not in target_role:
+            print(f"[roadmap] target_role不一致: last_step.title='{last_title}' vs target='{target_role}'")
+            return False
+        return True
 
-{{
-  "steps": [
-    {{
-      "step_number": 1,
-      "title": "ステップのタイトル（職種名や役割名）",
-      "description": "このステップで何をするか、どんな仕事をするか詳しく説明",
-      "duration": "3ヶ月",
-      "skills_to_acquire": ["スキル1", "スキル2", "スキル3"],
-      "status": "completed",
-      "progress": 100
-    }}
-  ],
-  "overall_progress": 15,
-  "estimated_total_duration": "12ヶ月"
-}}
-
-【ルール】
-- steps は3〜5件で、現在ロールから目標ロールまでの段階的な道筋を表すこと
-- status は "completed"（達成済）/ "current"（現在取り組み中）/ "upcoming"（未着手）のいずれか
-- ステップ1（現在ロール）のみ "completed" または "current" にすること
-- 最後のステップ（目標ロール）は必ず "upcoming" にすること
-- 中間ステップは状況に応じて "completed" / "current" / "upcoming" を設定すること
-- progress はそのステップの完了率（0〜100）。"upcoming" のステップは progress を 0 にすること
-- overall_progress は全体の進捗率（0〜100）
-- skills_to_acquire には社内研修で学べるものを優先的に含めること
-- title・description・skills_to_acquire はすべて日本語で記述すること。英語を使わないこと"""
-
-    # ── Ollama API 呼び出し ──
-    try:
-        raw = await _call_ollama(prompt)
-        # JSONブロックを抽出（```json ... ``` も考慮）
-        match = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', raw)
-        if not match:
-            match = re.search(r'\{[\s\S]*\}', raw)
-        if not match:
-            raise ValueError(f"LLMがJSON形式で返しませんでした。応答の先頭: {raw[:300]}")
-        extracted = match.group(1) if match.lastindex else match.group()
+    def _extract_json(raw: str) -> dict:
+        m = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', raw)
+        if not m:
+            m = re.search(r'\{[\s\S]*\}', raw)
+        if not m:
+            raise ValueError(f"JSONが見つかりません: {raw[:200]}")
+        extracted = m.group(1) if m.lastindex else m.group()
         parsed = json.loads(extracted)
-        # steps が無い場合はフォールバック
         if "steps" not in parsed:
-            raise ValueError("LLMレスポンスに'steps'フィールドがありません")
-        content_json = json.dumps(parsed, ensure_ascii=False)
-    except HTTPException:
-        raise
-    except Exception as e:
+            raise ValueError("'steps'フィールドがありません")
+        return parsed
+
+    # ── Ollama API 呼び出し（最大2回: 通常→厳格プロンプト） ──
+    strict_prompt = (
+        f"JSONのみ出力。\n"
+        f"現在ロール={current_role}, 目標ロール={target_role}\n"
+        f"保有スキル: {skills_text}\n\n"
+        f"4段階キャリアロードマップJSON:\n"
+        f"step1={{\"step_number\":1,\"title\":\"{current_role}\",\"status\":\"completed\",\"progress\":100,\"duration\":\"現在\",\"description\":\"...\",\"skills_to_acquire\":[\"...\",\"...\",\"...\"]}}\n"
+        f"step2={{\"step_number\":2,\"title\":\"【{current_role}の上位または隣接する実在職種名をここに記入】\",\"status\":\"current\",\"progress\":40,\"duration\":\"X〜Xヶ月\",\"description\":\"...\",\"skills_to_acquire\":[\"...\",\"...\",\"...\"]}}\n"
+        f"step3={{\"step_number\":3,\"title\":\"【{target_role}に近い実在職種名をここに記入】\",\"status\":\"upcoming\",\"progress\":0,\"duration\":\"X〜Xヶ月\",\"description\":\"...\",\"skills_to_acquire\":[\"...\",\"...\",\"...\"]}}\n"
+        f"step4={{\"step_number\":4,\"title\":\"{target_role}\",\"status\":\"upcoming\",\"progress\":0,\"duration\":\"X〜Xヶ月\",\"description\":\"...\",\"skills_to_acquire\":[\"...\",\"...\",\"...\"]}}\n"
+        f"overall_progress=25, estimated_total_duration=\"合計X〜Xヶ月\"\n"
+        f"titleの「【...】」部分を実在する具体的な職種名で置き換えてJSONを出力:"
+    )
+    parsed = None
+    last_error = None
+    for attempt, use_prompt in enumerate([prompt, strict_prompt], start=1):
+        try:
+            raw = await _call_ollama(use_prompt)
+            candidate = _extract_json(raw)
+            if _is_valid_roadmap(candidate):
+                parsed = candidate
+                break
+            else:
+                print(f"[roadmap] attempt {attempt}: プレースホルダー検出、リトライします")
+                last_error = ValueError("プレースホルダーを含む不正な出力")
+        except HTTPException:
+            raise
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(f"[roadmap] attempt {attempt} error:\n{tb}")
+            last_error = e
+
+    if parsed is None:
         tb = traceback.format_exc()
-        print(f"[roadmap] LLM error:\n{tb}")
-        raise HTTPException(status_code=500, detail=f"LLM生成エラー: {type(e).__name__}: {e}")
+        print(f"[roadmap] 全試行失敗:\n{tb}")
+        raise HTTPException(status_code=500, detail=f"LLM生成エラー: {type(last_error).__name__}: {last_error}")
+
+    content_json = json.dumps(parsed, ensure_ascii=False)
 
     # ── DB保存 ──
     roadmap = models.Roadmap(
@@ -254,6 +279,10 @@ def get_step_projects(
     skill_list = [s.strip().lower() for s in skills.split(",") if s.strip()]
     all_projects = db.query(models.Project).all()
 
+    def _matches(step_skill: str, proj_skill: str) -> bool:
+        """双方向部分一致でスキルを照合（日本語LLM生成スキル対応）"""
+        return proj_skill in step_skill or step_skill in proj_skill
+
     # スキルマッチング計算
     scored = []
     for p in all_projects:
@@ -261,8 +290,12 @@ def get_step_projects(
         if not req:
             match = 0
         else:
-            match = len(set(skill_list) & set(req)) / len(req) * 100
-        scored.append((p, int(match)))
+            matched = sum(
+                1 for proj_s in req
+                if any(_matches(step_s, proj_s) for step_s in skill_list)
+            )
+            match = int(matched / len(req) * 100)
+        scored.append((p, match))
 
     # マッチ度でソートして上位2件
     scored.sort(key=lambda x: x[1], reverse=True)
@@ -278,7 +311,7 @@ def get_step_projects(
                 required_skills=p.required_skills,
                 match_rate=s,
                 employ_type=p.employ_type,
-                project_duration=p.project_duration,
+                project_duration=str(p.project_duration) if p.project_duration else None,
             )
             for p, s in scored[:2]
         ],
@@ -302,3 +335,5 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     if not p:
         raise HTTPException(status_code=404, detail="Project not found")
     return p
+
+

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -c \"from routers import users, pages, roadmap, chat_sessions, auth\")",
+      "Bash(../.venv/Scripts/python -c \"import main\")",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(c:/Users/nw/Desktop/teamB/Group_B_Webpage_assignment/.venv/Scripts/pip install:*)",
+      "Bash(../.venv/Scripts/python -c \"import main; print\\(''OK''\\)\")",
+      "Bash(../.venv/Scripts/python -c \":*)"
+    ]
+  }
+}
