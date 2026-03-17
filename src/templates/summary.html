@@ -13,7 +13,7 @@
       <p class="summary-sub">クライアント提案用の資料を生成</p>
     </div>
     <div class="summary-header-actions">
-      <button class="btn-summary-action" id="btnEmail">
+      <button class="btn-summary-action" id="btnEmail" onclick="openEmailModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
         メール送信
       </button>
@@ -42,13 +42,9 @@
         <div class="profile-item"><span class="pitem-label">氏名</span><span class="pitem-value" id="p_name">—</span></div>
         <div class="profile-item"><span class="pitem-label">年齢</span><span class="pitem-value" id="p_age">—</span></div>
         <div class="profile-item"><span class="pitem-label">経験年数</span><span class="pitem-value" id="p_exp">—</span></div>
-        <div class="profile-item"><span class="pitem-label">現在のレベル</span><span class="pitem-value" id="p_role">—</span></div>
         <div class="profile-item"><span class="pitem-label">稼働可能時期</span><span class="pitem-value" id="p_available">—</span></div>
         <div class="profile-item"><span class="pitem-label">勤務地</span><span class="pitem-value" id="p_locations">—</span></div>
-      </div>
-      <div class="profile-rate-row">
-        <span class="pitem-label">希望単価</span>
-        <span class="pitem-value rate-value" id="p_rate">—</span>
+        <div class="profile-item"><span class="pitem-label">その他条件</span><span class="pitem-value" id="p_conditions">—</span></div>
       </div>
     </div>
 
@@ -108,7 +104,6 @@
         </div>
         <div class="assign-info-box">
           <div class="assign-info-row"><span>稼働可能: </span><span id="a_available" class="assign-highlight">—</span></div>
-          <div class="assign-info-row"><span>希望単価: </span><span id="a_rate" class="assign-highlight">—</span></div>
         </div>
       </div>
     </div>
@@ -131,11 +126,33 @@
   </div>
 
 </main>
+
+<!-- メール送信モーダル -->
+<div id="emailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;width:420px;padding:28px 28px 20px;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <h3 style="margin:0 0 16px;font-size:16px;color:#1a1a2e">メール送信</h3>
+    <p style="font-size:13px;color:#666;margin:0 0 16px">営業向けサマリーをメールで送信します。</p>
+    <label style="font-size:13px;font-weight:600;color:#333;display:block;margin-bottom:6px">送信先メールアドレス</label>
+    <input type="email" id="emailTo" placeholder="example@company.com"
+      style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;outline:none">
+    <p id="emailError" style="color:#c0392b;font-size:12px;margin:6px 0 0;display:none"></p>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+      <button onclick="closeEmailModal()"
+        style="padding:8px 18px;border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;cursor:pointer;font-size:14px">キャンセル</button>
+      <button onclick="submitEmail()" id="emailSendBtn"
+        style="padding:8px 18px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600">送信</button>
+    </div>
+  </div>
+</div>
+
+<!-- トースト通知 -->
+<div id="emailToast" style="display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,.2)"></div>
+
 {% endblock %}
 
 {% block page_scripts %}
 <script>
   window.__SUMMARY_USER_ID__ = {{ user.user_id if user else 1 }};
 </script>
-<script src="{{ url_for('static', path='js/summary.js') }}?v=1"></script>
+<script src="{{ url_for('static', path='js/summary.js') }}?v=3"></script>
 {% endblock %}

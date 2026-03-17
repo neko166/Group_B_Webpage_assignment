@@ -234,22 +234,18 @@
       </div>
       <div class="profile-form-group">
         <label>勤務地（複数選択可）</label>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="pf_location_btns">
-          {% for loc in ['東京', '大阪', '名古屋', '福岡', '札幌', 'フルリモート', '一部リモート'] %}
-          <button type="button" class="location-btn" data-loc="{{ loc }}" onclick="toggleLocation(this)">{{ loc }}</button>
-          {% endfor %}
+        <div class="location-section">
+          <div class="location-grid" id="pf_location_btns_pref">
+            {% for loc in ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'] %}
+            <button type="button" class="location-btn" data-loc="{{ loc }}" onclick="toggleLocation(this)">{{ loc }}</button>
+            {% endfor %}
+          </div>
         </div>
         <input type="hidden" id="pf_locations">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="profile-form-group">
-          <label>希望単価（下限）万円/月</label>
-          <input type="number" id="pf_rate_min" placeholder="90" min="0">
-        </div>
-        <div class="profile-form-group">
-          <label>希望単価（上限）万円/月</label>
-          <input type="number" id="pf_rate_max" placeholder="120" min="0">
-        </div>
+      <div class="profile-form-group">
+        <label>その他条件</label>
+        <input type="text" id="pf_conditions" placeholder="例：フルリモート可、通勤1時間以内">
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 16px;border-top:1px solid #f0f0f0;">
@@ -263,7 +259,9 @@
 .profile-form-group { margin-bottom:14px; }
 .profile-form-group label { display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px; }
 .profile-form-group input { width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box; }
-.location-btn { padding:5px 14px;border:1px solid #ddd;border-radius:20px;background:#fff;font-size:12px;cursor:pointer;transition:all 0.15s; }
+.location-section { border:1px solid #e8e8e8;border-radius:8px;overflow:hidden; }
+.location-grid { display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:8px 10px;max-height:160px;overflow-y:auto; }
+.location-btn { padding:4px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;font-size:11px;cursor:pointer;transition:all 0.15s;text-align:center;white-space:nowrap; }
 .location-btn.selected { background:#1a1a2e;color:#fff;border-color:#1a1a2e; }
 </style>
 {% endif %}
@@ -289,13 +287,12 @@ function openProfileModal() {
         document.getElementById('pf_age').value       = u.age || '';
         document.getElementById('pf_exp').value       = u.experience_years || '';
         document.getElementById('pf_available').value = u.available_from || '';
-        document.getElementById('pf_rate_min').value  = u.desired_rate_min ? Math.round(u.desired_rate_min/10000) : '';
-        document.getElementById('pf_rate_max').value  = u.desired_rate_max ? Math.round(u.desired_rate_max/10000) : '';
         const saved = (u.work_locations || '').split(',').map(s=>s.trim()).filter(Boolean);
         document.getElementById('pf_locations').value = u.work_locations || '';
-        document.querySelectorAll('.location-btn').forEach(btn => {
+        document.querySelectorAll('#pf_location_btns_pref .location-btn').forEach(btn => {
             btn.classList.toggle('selected', saved.includes(btn.dataset.loc));
         });
+        document.getElementById('pf_conditions').value = u.work_conditions || '';
     });
     const m = document.getElementById('profileModal');
     m.style.display = 'flex';
@@ -307,21 +304,18 @@ function closeProfileModal() {
 
 function toggleLocation(btn) {
     btn.classList.toggle('selected');
-    const selected = [...document.querySelectorAll('.location-btn.selected')].map(b => b.dataset.loc);
+    const selected = [...document.querySelectorAll('#pf_location_btns_pref .location-btn.selected')].map(b => b.dataset.loc);
     document.getElementById('pf_locations').value = selected.join(',');
 }
 
 async function saveProfile() {
-    const rateMin = document.getElementById('pf_rate_min').value;
-    const rateMax = document.getElementById('pf_rate_max').value;
     const payload = {
         name:             document.getElementById('pf_name').value.trim() || undefined,
         age:              document.getElementById('pf_age').value ? parseInt(document.getElementById('pf_age').value) : undefined,
         experience_years: document.getElementById('pf_exp').value ? parseInt(document.getElementById('pf_exp').value) : undefined,
         available_from:   document.getElementById('pf_available').value.trim() || undefined,
         work_locations:   document.getElementById('pf_locations').value || undefined,
-        desired_rate_min: rateMin ? parseInt(rateMin) * 10000 : undefined,
-        desired_rate_max: rateMax ? parseInt(rateMax) * 10000 : undefined,
+        work_conditions:  document.getElementById('pf_conditions').value.trim() || undefined,
     };
     Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
     await fetch('/users/' + _HEADER_USER_ID, {

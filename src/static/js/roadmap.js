@@ -8,6 +8,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadLatestRoadmap();
 });
 
+// ===== プレースホルダー検出 =====
+const PLACEHOLDER_PATTERNS = [
+  '中間ロール名', 'ステップ名', 'ロール名', 'スキル例',
+  'このステップで習得する内容', '現在担当している業務内容の説明',
+  '目標とするロールの説明', 'X〜X', '合計期間',
+];
+
+function hasPlaceholder(data) {
+  const steps = (data.content && data.content.steps) || [];
+  // プレースホルダー文字列チェック
+  const hasTemplateTxt = steps.some(step => {
+    const text = [step.title, step.description, step.duration].join(' ');
+    return PLACEHOLDER_PATTERNS.some(p => text.includes(p));
+  });
+  // target_role不一致チェック（LLMが参考例をそのまま出力した場合に検知）
+  const userTargetRole = (USER.target_role || '').trim();
+  const roadmapTargetRole = (data.target_role || '').trim();
+  const targetMismatch = userTargetRole && roadmapTargetRole && userTargetRole !== roadmapTargetRole;
+  if (targetMismatch) {
+    console.warn(`[roadmap] target_role不一致: DB="${roadmapTargetRole}" / ユーザー="${userTargetRole}"`);
+  }
+  return hasTemplateTxt || targetMismatch;
+}
+
+function showStaleBanner(show) {
+  const el = document.getElementById('staleDataBanner');
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
+
 // ===== 最新ロードマップ読み込み =====
 async function loadLatestRoadmap() {
   // ロードマップ読み込み（ロード中スピナーはHTML初期値でdisplay:flex済み）
@@ -18,6 +47,9 @@ async function loadLatestRoadmap() {
     if (data && data.content && data.content.steps) {
       currentRoadmap = data;
       renderRoadmap(data);
+      if (hasPlaceholder(data)) {
+        showStaleBanner(true);
+      }
     } else {
       showEmpty();
     }
@@ -95,9 +127,7 @@ function renderStep(step, totalSteps) {
   if (step.status === 'completed') {
     footerHtml = '<span class="step-footer-text completed-text">完了済み</span>';
   } else if (step.status === 'current') {
-    footerHtml = `
-      <span class="step-footer-text current-text">現在進行中（残り ${step.duration}）</span>
-      <button class="btn btn-sm btn-dark">学習を開始</button>`;
+    footerHtml = `<span class="step-footer-text current-text">現在進行中（残り ${step.duration}）</span>`;
   } else {
     footerHtml = `<span class="step-footer-text upcoming-text">${step.duration}後に到達予定</span>`;
   }
@@ -206,6 +236,83 @@ async function openStepDetail(stepNumber) {
   } catch (e) {
     document.getElementById('stepProjectsList').innerHTML =
       '<p style="color:#c0392b;font-size:13px">案件の取得に失敗しました</p>';
+  }
+}
+
+// ===== ロードマップ再生成 =====
+let _toastTimerInterval = null;
+
+function showGenerating() {
+  // ボタンをスピナー付きに変更
+  const btn = document.getElementById('regenerateBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span>AI生成中...';
+  }
+  // 上部トースト表示
+  const toast = document.getElementById('generateToast');
+  if (toast) {
+    // プログレスバーをリセットしてアニメーション再起動
+    const bar = document.getElementById('toastProgressBar');
+    if (bar) { bar.style.animation = 'none'; bar.offsetHeight; bar.style.animation = ''; }
+    toast.classList.add('visible');
+  }
+  // 経過秒数カウンター
+  const timerEl = document.getElementById('toastTimer');
+  let elapsed = 0;
+  if (timerEl) timerEl.textContent = '0秒経過';
+  _toastTimerInterval = setInterval(() => {
+    elapsed++;
+    if (timerEl) timerEl.textContent = `${elapsed}秒経過`;
+  }, 1000);
+  // コンテンツ・スピナー
+  showLoading(true);
+  document.getElementById('roadmapContent').style.display = 'none';
+  hideEmpty();
+}
+
+function hideGenerating() {
+  // タイマー停止
+  if (_toastTimerInterval) { clearInterval(_toastTimerInterval); _toastTimerInterval = null; }
+  // トースト非表示
+  const toast = document.getElementById('generateToast');
+  if (toast) toast.classList.remove('visible');
+  // ボタン復元
+  const btn = document.getElementById('regenerateBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'ロードマップを再生成'; }
+  showLoading(false);
+}
+
+async function regenerateRoadmap() {
+  if (document.getElementById('regenerateBtn')?.disabled) return;
+  showGenerating();
+
+  try {
+    const res = await fetch('/api/roadmap/generate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ user_id: USER_ID }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert('ロードマップ生成に失敗しました: ' + (err.detail || res.status));
+      showEmpty();
+      return;
+    }
+    const data = await res.json();
+    if (data && data.content && data.content.steps) {
+      currentRoadmap = data;
+      renderRoadmap(data);
+      showStaleBanner(hasPlaceholder(data));
+    } else {
+      showEmpty();
+    }
+  } catch (e) {
+    console.error('再生成エラー:', e);
+    alert('サーバーに接続できません。Ollamaが起動しているか確認してください。');
+    showEmpty();
+  } finally {
+    hideGenerating();
   }
 }
 

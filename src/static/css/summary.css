@@ -83,18 +83,59 @@
 .level-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #3b5bdb, #748ffc); }
 
 /* プロジェクト実績 */
-.career-entry { border-bottom: 1px solid #f0f0f0; padding-bottom: 18px; margin-bottom: 18px; }
-.career-entry:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-.career-period { font-size: 12px; color: #3b5bdb; margin-bottom: 4px; }
-.career-company { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
-.career-role-text { font-size: 13px; color: #3b5bdb; margin-bottom: 6px; }
-.career-project-name { font-size: 13px; color: #3b5bdb; margin-bottom: 8px; }
-.career-results-label { font-size: 12px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
-.career-results { list-style: none; padding: 0; margin: 0 0 8px; }
-.career-results li { font-size: 13px; color: #3b5bdb; padding: 2px 0; }
-.career-results li::before { content: '✓'; margin-right: 6px; }
-.career-tech-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.career-tech-tag { padding: 2px 10px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 11px; color: #555; }
+.career-entry {
+  border: 1px solid #eef0f8;
+  border-left: 4px solid #3b5bdb;
+  border-radius: 0 10px 10px 0;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  background: #fafbff;
+  transition: box-shadow 0.15s;
+}
+.career-entry:last-child { margin-bottom: 0; }
+.career-entry:hover { box-shadow: 0 2px 12px rgba(59,91,219,0.08); }
+.career-period {
+  display: inline-block;
+  font-size: 11px; font-weight: 700;
+  color: #3b5bdb;
+  background: #eef1fc;
+  border-radius: 4px;
+  padding: 2px 10px;
+  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+}
+.career-company { font-size: 17px; font-weight: 800; color: #1a1a2e; margin-bottom: 3px; }
+.career-role-text {
+  font-size: 13px; color: #3b5bdb; font-weight: 600;
+  margin-bottom: 10px;
+}
+.career-results-label {
+  font-size: 12px; font-weight: 700; color: #555;
+  margin-bottom: 6px; margin-top: 10px;
+  display: flex; align-items: center; gap: 5px;
+}
+.career-results-label::before { content: ''; display: inline-block; width: 3px; height: 12px; background: #3b5bdb; border-radius: 2px; }
+.career-results { list-style: none; padding: 0; margin: 0 0 12px; }
+.career-results li {
+  font-size: 13px; color: #333;
+  padding: 3px 0 3px 20px;
+  position: relative;
+  line-height: 1.5;
+}
+.career-results li::before {
+  content: '✓';
+  position: absolute; left: 0;
+  color: #3b5bdb; font-weight: 700;
+}
+.career-tech-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.career-tech-tag {
+  padding: 3px 12px;
+  background: #fff;
+  border: 1px solid #c8d0f0;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  color: #3b5bdb;
+}
 
 /* マッチング案件 */
 .project-card {
@@ -119,12 +160,24 @@
 .assign-highlight { font-weight: 700; color: #3b5bdb; }
 
 .suitability-card {
-  display: flex; justify-content: space-between; align-items: center;
-  border: 1px solid #eee; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px;
+  border: 1px solid #eee; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
 }
 .suitability-card:last-child { margin-bottom: 0; }
-.suitability-title { font-size: 14px; font-weight: 600; color: #1a1a2e; margin-bottom: 4px; }
-.suitability-desc  { font-size: 12px; color: #3b5bdb; }
+.suitability-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+}
+.suitability-title { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+.suitability-score { font-size: 12px; color: #888; margin-bottom: 4px; }
+.suitability-desc  { font-size: 12px; color: #555; margin-bottom: 10px; line-height: 1.5; }
+.suitability-skills {
+  border-top: 1px solid #f0f0f0; padding-top: 10px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.suit-skill-row {
+  display: flex; align-items: center; gap: 10px; font-size: 12px;
+}
+.suit-skill-name  { min-width: 90px; color: #1a1a2e; font-weight: 600; }
+.suit-skill-level { color: #888; font-size: 11px; white-space: nowrap; }
 .badge-optimal  { background: #2ecc71; color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .badge-suitable { background: #f39c12; color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .badge-review   { background: #bbb;    color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
@@ -143,6 +196,20 @@
 .notes-list { margin: 0; padding: 0; list-style: none; }
 .notes-list li { font-size: 13px; color: #3b5bdb; padding: 3px 0; }
 .notes-list li::before { content: '•'; margin-right: 8px; }
+
+/* スキルレベルドット表示 */
+.level-bar-row { margin-bottom: 10px; }
+.level-bar-label {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; color: #333; margin-bottom: 4px;
+}
+.skill-dots { display: flex; gap: 4px; }
+.skill-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  display: inline-block;
+}
+.skill-dot.filled  { background: #3b5bdb; }
+.skill-dot.empty   { background: #dde3f8; }
 
 @media (max-width: 768px) {
   .profile-grid { grid-template-columns: 1fr 1fr; }

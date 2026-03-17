@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 # .env をロード（他の import より前に実行）
 load_dotenv()
 
-from routers import users, pages, roadmap, chat_sessions, auth   # noqa: E402
+from routers import users, pages, roadmap, summary, chat_sessions, auth   # noqa: E402
 import dify_service  # noqa: E402
 from database import engine, Base  # noqa: E402
 from exceptions import AppException  # noqa: E402
@@ -37,6 +37,7 @@ app.include_router(auth.router)
 app.include_router(pages.router)
 app.include_router(users.router,         prefix="/users", tags=["users"])
 app.include_router(roadmap.router)
+app.include_router(summary.router)
 app.include_router(chat_sessions.router)
 
 
@@ -237,5 +238,3 @@ async def proxy_dify_chat(req: DifyChatRequest):
     """Dify APIへのリクエストを中継し、ビジネスロジックをサービス層に委譲します。"""
     return await dify_service.call_dify_chat_api(req)
 
-app.include_router(pages.router)
-app.include_router(users.router, prefix="/users", tags=["users"])

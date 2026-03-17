@@ -34,9 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   sendBtn.addEventListener('click', handleSend);
   document.getElementById('fileInput').addEventListener('change', handleFileAttach);
   document.getElementById('roadmapBtn').addEventListener('click', generateAndOpenRoadmap);
-  document.getElementById('careerBookBtn').addEventListener('click', () => {
-    window.open('https://portal.brexa-tech.jp/career-portal/guide', '_blank');
-  });
   document.getElementById('startNewChat').addEventListener('click', startNewChat);
   document.getElementById('newChatBtn').addEventListener('click', startNewChat);
 
@@ -45,17 +42,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     bd.addEventListener('click', e => { if (e.target === bd) bd.classList.remove('open'); });
   });
 
-  // 会話履歴をサイドバーに読み込む
-  await loadSessions();
+  // 会話履歴をサイドバーに読み込み、最新セッションを自動表示
+  await loadSessions(true);
 });
 
 // ===== セッション一覧読み込み =====
-async function loadSessions() {
+async function loadSessions(autoLoadLatest = false) {
   try {
     const res = await fetch(`/api/chat/sessions?user_id=${USER_ID}`);
     if (!res.ok) return;
     const sessions = await res.json();
     renderSessionList(sessions);
+    // 初回ロード時：最新セッションを自動で開く
+    if (autoLoadLatest && sessions && sessions.length > 0 && !currentSessionId) {
+      await loadSession(sessions[0].session_id);
+    }
   } catch (e) {
     console.error('Session load error:', e);
   }
