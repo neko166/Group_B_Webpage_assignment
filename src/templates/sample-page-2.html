@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Page 2</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <style>
+        .section-panel {
+            background-color: var(--mono-100);
+            padding: var(--space-4);
+            border-radius: var(--radius-m);
+            margin-bottom: var(--space-3);
+            border: var(--border-standard);
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <main class="l-container">
+        <section class="section-panel">
+            <h2>Sample 2: フォーム</h2>
+            <p>入力項目のサンプルです。</p>
+            <form class="mt-3">
+                <label for="company">会社名</label>
+                <input id="company" type="text" placeholder="株式会社サンプル">
+
+                <label class="mt-2" for="mail">メールアドレス</label>
+                <input id="mail" type="email" placeholder="info@example.com">
+
+                <div class="mt-3 flex-gap">
+                    <button type="button" class="btn btn-primary">送信</button>
+                    <button type="reset" class="btn btn-secondary">リセット</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+</body>
+</html>
