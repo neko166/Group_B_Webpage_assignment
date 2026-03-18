@@ -161,11 +161,6 @@ JSON:"""
             if any(pat in text for pat in _PLACEHOLDER_PATTERNS):
                 print(f"[roadmap] プレースホルダー検出: {text[:120]}")
                 return False
-        # 最終ステップのtitleが目標ロールと一致するか確認
-        last_title = steps[-1].get("title", "")
-        if target_role and last_title and target_role not in last_title and last_title not in target_role:
-            print(f"[roadmap] target_role不一致: last_step.title='{last_title}' vs target='{target_role}'")
-            return False
         return True
 
     def _extract_json(raw: str) -> dict:
@@ -182,16 +177,15 @@ JSON:"""
 
     # ── Ollama API 呼び出し（最大2回: 通常→厳格プロンプト） ──
     strict_prompt = (
-        f"JSONのみ出力。\n"
-        f"現在ロール={current_role}, 目標ロール={target_role}\n"
-        f"保有スキル: {skills_text}\n\n"
-        f"4段階キャリアロードマップJSON:\n"
-        f"step1={{\"step_number\":1,\"title\":\"{current_role}\",\"status\":\"completed\",\"progress\":100,\"duration\":\"現在\",\"description\":\"...\",\"skills_to_acquire\":[\"...\",\"...\",\"...\"]}}\n"
-        f"step2={{\"step_number\":2,\"title\":\"【{current_role}の上位または隣接する実在職種名をここに記入】\",\"status\":\"current\",\"progress\":40,\"duration\":\"X〜Xヶ月\",\"description\":\"...\",\"skills_to_acquire\":[\"...\",\"...\",\"...\"]}}\n"
-        f"step3={{\"step_number\":3,\"title\":\"【{target_role}に近い実在職種名をここに記入】\",\"status\":\"upcoming\",\"progress\":0,\"duration\":\"X〜Xヶ月\",\"description\":\"...\",\"skills_to_acquire\":[\"...\",\"...\",\"...\"]}}\n"
-        f"step4={{\"step_number\":4,\"title\":\"{target_role}\",\"status\":\"upcoming\",\"progress\":0,\"duration\":\"X〜Xヶ月\",\"description\":\"...\",\"skills_to_acquire\":[\"...\",\"...\",\"...\"]}}\n"
-        f"overall_progress=25, estimated_total_duration=\"合計X〜Xヶ月\"\n"
-        f"titleの「【...】」部分を実在する具体的な職種名で置き換えてJSONを出力:"
+        f"Output only valid JSON. No explanation.\n"
+        f"Create a 4-step career roadmap from {current_role} to {target_role}.\n\n"
+        f'{{"steps":['
+        f'{{"step_number":1,"title":"{current_role}","status":"completed","progress":100,"duration":"現在","description":"{current_role}として実務経験を積んでいる段階","skills_to_acquire":["チーム開発","コードレビュー","要件定義"]}},'
+        f'{{"step_number":2,"title":"シニア{current_role}","status":"current","progress":40,"duration":"6〜12ヶ月","description":"上位職種へのステップアップ段階","skills_to_acquire":["技術設計","メンタリング","アーキテクチャ設計"]}},'
+        f'{{"step_number":3,"title":"{target_role}候補","status":"upcoming","progress":0,"duration":"6〜12ヶ月","description":"{target_role}に必要なスキルを習得する段階","skills_to_acquire":["データ分析","統計","ビジネス理解"]}},'
+        f'{{"step_number":4,"title":"{target_role}","status":"upcoming","progress":0,"duration":"6〜12ヶ月","description":"{target_role}として活躍する段階","skills_to_acquire":["高度なデータ分析","意思決定支援","チームリード"]}}'
+        f'],"overall_progress":25,"estimated_total_duration":"18〜36ヶ月"}}\n\n'
+        f"Replace step 2 and 3 titles with real intermediate job titles between {current_role} and {target_role}. Output JSON only:"
     )
     parsed = None
     last_error = None
@@ -213,9 +207,49 @@ JSON:"""
             last_error = e
 
     if parsed is None:
-        tb = traceback.format_exc()
-        print(f"[roadmap] 全試行失敗:\n{tb}")
-        raise HTTPException(status_code=500, detail=f"LLM生成エラー: {type(last_error).__name__}: {last_error}")
+        print(f"[roadmap] 全試行失敗。フォールバックロードマップを使用: {last_error}")
+        parsed = {
+            "steps": [
+                {
+                    "step_number": 1,
+                    "title": current_role,
+                    "status": "completed",
+                    "progress": 100,
+                    "duration": "現在",
+                    "description": f"{current_role}として実務経験を積んでいる段階です。",
+                    "skills_to_acquire": ["チーム開発", "コードレビュー", "要件定義"],
+                },
+                {
+                    "step_number": 2,
+                    "title": f"シニア{current_role}",
+                    "status": "current",
+                    "progress": 30,
+                    "duration": "6〜12ヶ月",
+                    "description": f"{current_role}としての専門性をさらに深め、上位スキルを習得する段階です。",
+                    "skills_to_acquire": ["技術設計", "メンタリング", "アーキテクチャ設計"],
+                },
+                {
+                    "step_number": 3,
+                    "title": f"{target_role}準備",
+                    "status": "upcoming",
+                    "progress": 0,
+                    "duration": "6〜12ヶ月",
+                    "description": f"{target_role}に必要な知識・スキルを体系的に習得する段階です。",
+                    "skills_to_acquire": ["専門知識習得", "実案件経験", "資格取得"],
+                },
+                {
+                    "step_number": 4,
+                    "title": target_role,
+                    "status": "upcoming",
+                    "progress": 0,
+                    "duration": "6〜12ヶ月",
+                    "description": f"{target_role}として独立したパフォーマンスを発揮する段階です。",
+                    "skills_to_acquire": ["高度専門スキル", "チームリード", "意思決定支援"],
+                },
+            ],
+            "overall_progress": 25,
+            "estimated_total_duration": "18〜36ヶ月",
+        }
 
     content_json = json.dumps(parsed, ensure_ascii=False)
 

@@ -243,14 +243,21 @@ async def read_project(request: Request, db: Session = Depends(get_db)):
     projects_raw = db.query(models.Project).all()
     projects_data = [
         {
-            "id": p.project_id,
-            "project_name": p.project_name,
-            "company": p.company,
+            "id":               p.project_id,
+            "project_name":     p.project_name,
+            "company":          p.company,
             "project_overview": p.project_overview,
-            "match_rate": p.match_rate,
-            "employ_type": p.employ_type,
-            "required_skills": p.required_skills,
+            "description":      p.description or "",
+            "match_rate":       p.match_rate,
+            "employ_type":      p.employ_type,
+            "required_skills":  p.required_skills,
+            "preferred_skills": p.preferred_skills or "",
             "project_duration": p.project_duration.isoformat() if p.project_duration else "",
+            "location":         p.location or "",
+            "reward":           p.reward or "",
+            "team_size":        p.team_size or "",
+            "interview_count":  p.interview_count or "",
+            "work_process":     p.work_process or "",
         }
         for p in projects_raw
     ]

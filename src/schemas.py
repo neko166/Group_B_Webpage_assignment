@@ -130,10 +130,17 @@ class ProjectBase(BaseModel):
     project_name:     str           = Field(..., max_length=200)
     company:          str           = Field(..., max_length=100)
     project_overview: Optional[str] = Field(None, max_length=200)
+    description:      Optional[str] = None
     required_skills:  Optional[str] = None
+    preferred_skills: Optional[str] = None
     match_rate:       Optional[int] = None
     employ_type:      Optional[str] = Field(None, max_length=50)
     project_duration: Optional[str] = None
+    location:         Optional[str] = None
+    reward:           Optional[str] = None
+    team_size:        Optional[str] = None
+    interview_count:  Optional[str] = None
+    work_process:     Optional[str] = None
 
 class ProjectCreate(ProjectBase):
     pass

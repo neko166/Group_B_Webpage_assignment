@@ -98,14 +98,21 @@ class Training(Base):
 class Project(Base):
     __tablename__ = "Project"
 
-    project_id  = Column(Integer, primary_key=True, index=True)
-    required_skills        = Column(Text, nullable=False)       # 必須スキル（カンマ区切りで保存）
-    project_name  = Column(String(200), nullable=False)         # プロジェクト名
-    company         = Column(String(100), nullable=False)       # 企業名
-    project_overview      = Column(String(200), nullable=False) # 案件概要
-    match_rate     = Column(Integer, nullable=False)            # 適合率
-    employ_type       = Column(String(50), nullable=False)      # 勤務形態
-    project_duration = Column(Date, nullable=False)             # 勤務期間
+    project_id        = Column(Integer, primary_key=True, index=True)
+    project_name      = Column(String(200), nullable=False)         # プロジェクト名
+    company           = Column(String(100), nullable=False)         # 企業名
+    project_overview  = Column(String(200), nullable=False)         # 案件概要
+    description       = Column(Text,        nullable=True)          # 詳細説明
+    required_skills   = Column(Text,        nullable=False)         # 必須スキル
+    preferred_skills  = Column(Text,        nullable=True)          # 歓迎スキル
+    match_rate        = Column(Integer,     nullable=False)          # 適合率
+    employ_type       = Column(String(50),  nullable=False)          # 勤務形態
+    project_duration  = Column(Date,        nullable=False)          # 勤務期間
+    location          = Column(String(100), nullable=True)           # 勤務地
+    reward            = Column(String(50),  nullable=True)           # 単価
+    team_size         = Column(String(50),  nullable=True)           # チーム規模
+    interview_count   = Column(String(50),  nullable=True)           # 面談回数
+    work_process      = Column(Text,        nullable=True)           # 業務フロー
 
 # ──────────────────────────────────────────────
 # roadmaps  (ロードマップ)

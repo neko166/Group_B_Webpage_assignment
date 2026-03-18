@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from PIL import Image; print\\(''ok''\\)\")",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/python -c \"from PIL import Image; print\\(''ok''\\)\")",
+      "Bash(find /c/Users/nw/Desktop/developer/Group_B_Webpage_assignment -name pip* -path *venv*)",
+      "Bash(.venv/Scripts/python.exe -m pip install pillow -q)",
+      "Bash(.venv/Scripts/python.exe -:*)",
+      "Bash(find /c/Users/nw/Desktop/developer/Group_B_Webpage_assignment -name python.exe -path *venv*)",
+      "Bash(.venv/Scripts/python.exe src/alter_project.py)",
+      "Bash(.venv/Scripts/python.exe src/seed_dummy.py)",
+      "Read(//c/Users/nw/Desktop/teamB/**)",
+      "Bash(/c/Users/nw/Desktop/teamB/Group_B_Webpage_assignment/.venv/Scripts/python.exe src/seed_dummy.py)",
+      "Bash(SQLALCHEMY_DATABASE_URL=\"sqlite:///./app.db\" /c/Users/nw/Desktop/teamB/Group_B_Webpage_assignment/.venv/Scripts/python.exe src/seed_dummy.py)",
+      "Bash(SQLALCHEMY_DATABASE_URL=\"sqlite:///./app.db\" /c/Users/nw/Desktop/teamB/Group_B_Webpage_assignment/.venv/Scripts/python.exe -c \":*)"
+    ]
+  }
+}

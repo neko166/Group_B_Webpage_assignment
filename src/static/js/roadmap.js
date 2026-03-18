@@ -246,6 +246,8 @@ function showGenerating() {
   // ボタンを無効化（表示は変えない）
   const btn = document.getElementById('regenerateBtn');
   if (btn) btn.disabled = true;
+  // バナー非表示
+  showStaleBanner(false);
   // 上部トースト表示
   const toast = document.getElementById('generateToast');
   if (toast) {

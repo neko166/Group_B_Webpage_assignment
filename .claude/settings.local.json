@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python -c \":*)",
       "Bash(python seed_dummy.py)",
-      "Bash(SQLALCHEMY_DATABASE_URL=\"sqlite:///./app.db\" python seed_dummy.py)"
+      "Bash(SQLALCHEMY_DATABASE_URL=\"sqlite:///./app.db\" python seed_dummy.py)",
+      "Bash(xargs sed:*)"
     ]
   }
 }
