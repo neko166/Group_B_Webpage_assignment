@@ -337,13 +337,21 @@ def send_summary_email(payload: SendEmailRequest, db: Session = Depends(get_db))
         xlsx_part.add_header("Content-Disposition", "attachment", filename=filename)
         msg.attach(xlsx_part)
 
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
             server.ehlo()
             server.starttls()
             server.login(smtp_user, smtp_pass)
             server.sendmail(smtp_from, payload.to_email, msg.as_string())
     except smtplib.SMTPAuthenticationError:
         raise HTTPException(status_code=503, detail="SMTP認証エラー。メールアドレスとパスワードを確認してください。")
+    except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, smtplib.SMTPDataError, OSError) as e:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "SMTPネットワークエラー。ホスト、ポート、インターネット接続、TLS/SSL設定、ファイアウォールを確認してください。"
+                f" 詳細: {e}"
+            ),
+        )
     except smtplib.SMTPException as e:
         raise HTTPException(status_code=503, detail=f"メール送信エラー: {e}")
     except Exception as e:

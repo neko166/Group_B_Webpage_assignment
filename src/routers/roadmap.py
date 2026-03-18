@@ -169,7 +169,7 @@ JSON:"""
         return True
 
     def _extract_json(raw: str) -> dict:
-        m = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', raw)
+        m = re.search(r'```(?:json)?\s*(\{[\s\S]*\})\s*```', raw)
         if not m:
             m = re.search(r'\{[\s\S]*\}', raw)
         if not m:

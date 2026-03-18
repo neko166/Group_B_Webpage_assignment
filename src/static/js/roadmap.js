@@ -243,12 +243,9 @@ async function openStepDetail(stepNumber) {
 let _toastTimerInterval = null;
 
 function showGenerating() {
-  // ボタンをスピナー付きに変更
+  // ボタンを無効化（表示は変えない）
   const btn = document.getElementById('regenerateBtn');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="btn-spinner"></span>AI生成中...';
-  }
+  if (btn) btn.disabled = true;
   // 上部トースト表示
   const toast = document.getElementById('generateToast');
   if (toast) {

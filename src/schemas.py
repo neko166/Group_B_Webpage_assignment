@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import date, datetime
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Optional, Union
+from pydantic import BaseModel, Field, field_validator
 
 
 # ══════════════════════════════════════════════
@@ -162,7 +162,14 @@ class RoadmapStep(BaseModel):
 class RoadmapContent(BaseModel):
     steps:                    List[RoadmapStep] = []
     overall_progress:         int               = 0
-    estimated_total_duration: Optional[str]     = ""
+    estimated_total_duration: Optional[Union[str, int]] = ""
+
+    @field_validator("estimated_total_duration", mode="before")
+    @classmethod
+    def coerce_duration_to_str(cls, v):
+        if v is None:
+            return ""
+        return str(v)
 
 class RoadmapGenerateRequest(BaseModel):
     user_id:     int            = Field(..., example=1)

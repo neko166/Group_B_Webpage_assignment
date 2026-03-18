@@ -72,7 +72,7 @@
             <div id="results-area" class="hidden">
                 <section class="c-card search-conditions-wrapper">
                     <div id="filter-display-area">
-                        <!-- JSでフィルター条件を追加 -->
+                        <span id="filter-placeholder" style="color:#bbb;font-size:13px;">右のチャットで検索条件を指定してください</span>
                     </div>
                 </section>
                 <div id="project-cards-container">
@@ -143,9 +143,13 @@
                 initialMessage.classList.add('hidden');
                 resultsArea.classList.remove('hidden');
 
-                // フィルタータグ表示（Difyから条件が返ってきた場合のみ表示）
+                // フィルタータグ表示（条件がある場合のみ表示）
                 filterDisplayArea.innerHTML = '';
-                filterDisplayArea.innerHTML = '<span class="condition-label mr-2">検索条件</span>';
+                if (currentFilters.length > 0) {
+                    filterDisplayArea.innerHTML = '<span class="condition-label mr-2">検索条件</span>';
+                } else {
+                    filterDisplayArea.innerHTML = '<span style="color:#bbb;font-size:13px;">右のチャットで検索条件を指定してください</span>';
+                }
 
                 currentFilters.forEach(tag => {
                     const tagEl = document.createElement('span');
@@ -206,6 +210,9 @@
                     }
                 }
             });
+
+            // ページ読み込み時に全案件を表示
+            displayProjectResults([], PROJECTS);
 
             // --- Chat Setup ---
             const handleChatSubmit = async (message, appendMessage) => {
