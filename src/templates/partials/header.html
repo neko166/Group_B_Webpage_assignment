@@ -47,10 +47,11 @@
 
     .site-nav__link {
         display: inline-block;
-        padding: var(--space-1) var(--space-3);
+        padding: var(--space-1) var(--space-1);
         border: var(--border-standard);
         border-radius: var(--radius-s);
-        background-color: var(--mono-100);
+        /* background-color: var(--mono-100); */
+        color: var(--mono-100);
         font-size: var(--fs-data);
         font-weight: bold;
     }
@@ -70,11 +71,153 @@
             <a href="/"><span class="site-title">HumanCapitalStrategy System</span></a>
         </div>
         <nav class="site-nav" aria-label="メインナビゲーション">
-            <a class="site-nav__link" href="{{ url_for('read_test') }}">Test</a>
-            <a class="site-nav__link" href="{{ url_for('read_chat') }}">Chat</a>
-            <a class="site-nav__link" href="{{ url_for('read_sample1') }}">Sample 1</a>
-            <a class="site-nav__link" href="{{ url_for('read_sample2') }}">Sample 2</a>
-            <a class="site-nav__link" href="{{ url_for('read_sample3') }}">Sample 3</a>
+            <a class="site-nav__link" href="{{ url_for('read_dashboard') }}">ダッシュボード</a>
+            <a class="site-nav__link" href="{{ url_for('read_chat') }}">AIキャリアアドバイザー</a>
+            <a class="site-nav__link" href="{{ url_for('read_roadmap') }}">ロードマップ</a>
+            <a class="site-nav__link" href="{{ url_for('read_summary') }}">営業サマリー</a>
+            <a class="site-nav__link" href="{{ url_for('read_project') }}">案件検索</a>
+            <a class="site-nav__link" href="{{ url_for('read_training') }}">研修検索</a>
+            <a class="site-nav__link" href="{{ url_for('read_skill_check') }}">スキルチェック</a>
+            <a class="site-nav__link" href="{{ url_for('read_practice') }}">問題練習</a>
+            {% if user %}
+            <div class="user-menu-wrap">
+                <button class="user-menu-trigger" id="userMenuTrigger" onclick="toggleUserMenu()">
+                    <span class="user-avatar">{{ user.name[0] }}</span>
+                    {{ user.name }}
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-info">
+                        <div class="user-dropdown-name">{{ user.name }}</div>
+                        <div class="user-dropdown-email">{{ user.email }}</div>
+                    </div>
+                    <button class="user-dropdown-logout" style="color:#1a1a2e;" onclick="openProfileModal()">プロフィール編集</button>
+                    <a class="user-dropdown-logout" href="/logout">ログアウト</a>
+                </div>
+            </div>
+            {% endif %}
         </nav>
     </div>
 </header>
+
+{% if user %}
+<!-- プロフィール編集モーダル -->
+<div id="profileModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid #f0f0f0;">
+      <h3 style="margin:0;font-size:16px;font-weight:700;">プロフィール編集</h3>
+      <button onclick="closeProfileModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;">×</button>
+    </div>
+    <div style="padding:16px 20px;">
+      <div class="profile-form-group">
+        <label>氏名</label>
+        <input type="text" id="pf_name" placeholder="田中 太郎">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="profile-form-group">
+          <label>年齢</label>
+          <input type="number" id="pf_age" placeholder="32" min="18" max="70">
+        </div>
+        <div class="profile-form-group">
+          <label>経験年数</label>
+          <input type="number" id="pf_exp" placeholder="8" min="0" max="50">
+        </div>
+      </div>
+      <div class="profile-form-group">
+        <label>稼働可能時期</label>
+        <input type="text" id="pf_available" placeholder="例：2026年4月〜、即日">
+      </div>
+      <div class="profile-form-group">
+        <label>勤務地（複数選択可）</label>
+        <div class="location-section">
+          <div class="location-grid" id="pf_location_btns_pref">
+            {% for loc in ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'] %}
+            <button type="button" class="location-btn" data-loc="{{ loc }}" onclick="toggleLocation(this)">{{ loc }}</button>
+            {% endfor %}
+          </div>
+        </div>
+        <input type="hidden" id="pf_locations">
+      </div>
+      <div class="profile-form-group">
+        <label>その他条件</label>
+        <input type="text" id="pf_conditions" placeholder="例：フルリモート可、通勤1時間以内">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 16px;border-top:1px solid #f0f0f0;">
+      <button onclick="closeProfileModal()" style="padding:7px 18px;border:1px solid #e63200;background:#fff;color:#e63200;border-radius:6px;cursor:pointer;font-size:14px;">キャンセル</button>
+      <button onclick="saveProfile()" style="padding:7px 18px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">保存</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.profile-form-group { margin-bottom:14px; }
+.profile-form-group label { display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px; }
+.profile-form-group input { width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box; }
+.location-section { border:1px solid #e8e8e8;border-radius:8px;overflow:hidden; }
+.location-grid { display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:8px 10px;max-height:160px;overflow-y:auto; }
+.location-btn { padding:4px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;font-size:11px;cursor:pointer;transition:all 0.15s;text-align:center;white-space:nowrap; }
+.location-btn.selected { background:#1a1a2e;color:#fff;border-color:#1a1a2e; }
+</style>
+{% endif %}
+
+<script>
+function toggleUserMenu() {
+    document.getElementById('userDropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+    const trigger = document.getElementById('userMenuTrigger');
+    const dropdown = document.getElementById('userDropdown');
+    if (trigger && dropdown && !trigger.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+    }
+});
+
+const _HEADER_USER_ID = {{ user.user_id if user else 0 }};
+
+function openProfileModal() {
+    document.getElementById('userDropdown').classList.remove('open');
+    fetch('/users/' + _HEADER_USER_ID).then(r => r.json()).then(u => {
+        document.getElementById('pf_name').value      = u.name || '';
+        document.getElementById('pf_age').value       = u.age || '';
+        document.getElementById('pf_exp').value       = u.experience_years || '';
+        document.getElementById('pf_available').value = u.available_from || '';
+        const saved = (u.work_locations || '').split(',').map(s=>s.trim()).filter(Boolean);
+        document.getElementById('pf_locations').value = u.work_locations || '';
+        document.querySelectorAll('#pf_location_btns_pref .location-btn').forEach(btn => {
+            btn.classList.toggle('selected', saved.includes(btn.dataset.loc));
+        });
+        document.getElementById('pf_conditions').value = u.work_conditions || '';
+    });
+    const m = document.getElementById('profileModal');
+    m.style.display = 'flex';
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal').style.display = 'none';
+}
+
+function toggleLocation(btn) {
+    btn.classList.toggle('selected');
+    const selected = [...document.querySelectorAll('#pf_location_btns_pref .location-btn.selected')].map(b => b.dataset.loc);
+    document.getElementById('pf_locations').value = selected.join(',');
+}
+
+async function saveProfile() {
+    const payload = {
+        name:             document.getElementById('pf_name').value.trim() || undefined,
+        age:              document.getElementById('pf_age').value ? parseInt(document.getElementById('pf_age').value) : undefined,
+        experience_years: document.getElementById('pf_exp').value ? parseInt(document.getElementById('pf_exp').value) : undefined,
+        available_from:   document.getElementById('pf_available').value.trim() || undefined,
+        work_locations:   document.getElementById('pf_locations').value || undefined,
+        work_conditions:  document.getElementById('pf_conditions').value.trim() || undefined,
+    };
+    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+    await fetch('/users/' + _HEADER_USER_ID, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    closeProfileModal();
+    location.reload();
+}
+</script>

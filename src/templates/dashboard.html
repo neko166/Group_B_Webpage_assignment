@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}エンジニアダッシュボード{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<main class="dashboard-main l-container">
+
+  <!-- 現在のロール -->
+  <div class="card">
+    <div class="card-title">現在のロール</div>
+    <div class="role-row">
+      <div>
+        <div class="role-value" id="currentRoleDisplay">{{ user.current_role if user else '' }}</div>
+        <span class="role-badge">Current Role</span>
+      </div>
+      <button class="btn btn-sm" onclick="openModal('modalCurrentRole')">変更</button>
+    </div>
+  </div>
+
+  <!-- 目標ロール -->
+  <div class="card">
+    <div class="card-title">目標ロール</div>
+    <div class="role-row">
+      <div>
+        <div class="role-value" id="targetRoleDisplay">{{ user.target_role if user else '' }}</div>
+        <span class="role-badge" style="background:#eaf4ff;color:#1a6fb5;border-color:#1a6fb5;">Target Role</span>
+      </div>
+      <button class="btn btn-sm" onclick="openModal('modalTargetRole')">変更</button>
+    </div>
+  </div>
+
+  <!-- 保有スキルマップ -->
+  <div class="card">
+    <div class="card-title">保有スキルマップ</div>
+    <div class="skill-stats-grid" id="skillStatsGrid"></div>
+    <div class="chart-tab-bar">
+      <button class="chart-tab active" id="tabRadar" onclick="setChartMode('radar')">カテゴリレーダー</button>
+      <button class="chart-tab" id="tabBar" onclick="setChartMode('bar')">スキル詳細</button>
+    </div>
+    <div class="radar-wrapper">
+      <canvas id="radarCanvas" width="400" height="360"></canvas>
+      <div class="radar-legend" id="radarLegend"></div>
+    </div>
+    <div id="barChartWrapper" style="display:none"></div>
+  </div>
+
+  <!-- 職務経歴 + スキル一覧 -->
+  <div class="two-col">
+
+    <!-- 職務経歴 -->
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">職務経歴</div>
+      <div id="careerList"></div>
+      <div style="margin-top:12px">
+        <button class="btn btn-primary btn-sm" onclick="openAddCareer()">＋ 経歴追加</button>
+      </div>
+    </div>
+
+    <!-- 保有スキル一覧 -->
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+        保有スキル一覧<span class="skill-count-badge" id="skillCount"></span>
+      </div>
+      <div class="cat-tabs" id="catTabs"></div>
+      <table class="skill-table">
+        <thead>
+          <tr>
+            <th>スキル名</th>
+            <th>領域</th>
+            <th>レベル</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="skillTableBody"></tbody>
+      </table>
+      <div class="add-skill-row">
+        <button class="btn btn-primary btn-sm" onclick="openAddSkill()">＋ スキル追加</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:14px"></div>
+
+  <!-- おすすめ研修 -->
+  <div class="card">
+    <div class="card-title">おすすめ研修</div>
+    <div class="training-grid" id="trainingGrid"></div>
+  </div>
+
+</main>
+
+<!-- ========== MODALS ========== -->
+
+<!-- 現在ロール変更 -->
+<div class="modal-backdrop" id="modalCurrentRole">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>現在のロール変更</h3>
+      <button class="modal-close" onclick="closeModal('modalCurrentRole')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>ロール選択</label>
+        <select id="currentRoleSelect">
+          <optgroup label="── エンジニア（開発） ──">
+            <option>バックエンドエンジニア</option>
+            <option>フロントエンドエンジニア</option>
+            <option>フルスタックエンジニア</option>
+            <option>モバイルエンジニア（iOS）</option>
+            <option>モバイルエンジニア（Android）</option>
+            <option>ゲームエンジニア</option>
+            <option>組み込みエンジニア</option>
+            <option>ブロックチェーンエンジニア</option>
+          </optgroup>
+          <optgroup label="── エンジニア（インフラ・クラウド） ──">
+            <option>インフラエンジニア</option>
+            <option>クラウドエンジニア</option>
+            <option>DevOpsエンジニア</option>
+            <option>SREエンジニア</option>
+            <option>ネットワークエンジニア</option>
+            <option>セキュリティエンジニア</option>
+          </optgroup>
+          <optgroup label="── データ・AI ──">
+            <option>データエンジニア</option>
+            <option>データサイエンティスト</option>
+            <option>機械学習エンジニア</option>
+            <option>AIエンジニア</option>
+            <option>データベース管理者（DBA）</option>
+          </optgroup>
+          <optgroup label="── 業務系・ERP ──">
+            <option>業務アプリケーションエンジニア</option>
+            <option>ERPエンジニア</option>
+            <option>CRM/SFAエンジニア</option>
+          </optgroup>
+          <optgroup label="── QA・デザイン ──">
+            <option>QAエンジニア</option>
+            <option>UI/UXデザイナー</option>
+            <option>テクニカルライター</option>
+          </optgroup>
+          <optgroup label="── マネジメント・リード ──">
+            <option>テックリード</option>
+            <option>アーキテクト</option>
+            <option>プロジェクトマネージャー</option>
+            <option>プロダクトマネージャー</option>
+            <option>スクラムマスター</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalCurrentRole')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveCurrentRole()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 目標ロール変更 -->
+<div class="modal-backdrop" id="modalTargetRole">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>目標ロール設定</h3>
+      <button class="modal-close" onclick="closeModal('modalTargetRole')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>目標ロール（自由入力またはサジェストから選択）</label>
+        <input type="text" id="targetRoleInput" list="targetRoleSuggests" placeholder="例：機械学習エンジニア">
+        <datalist id="targetRoleSuggests">
+          <option value="バックエンドエンジニア">
+          <option value="フロントエンドエンジニア">
+          <option value="フルスタックエンジニア">
+          <option value="モバイルエンジニア（iOS）">
+          <option value="モバイルエンジニア（Android）">
+          <option value="インフラエンジニア">
+          <option value="クラウドエンジニア">
+          <option value="DevOpsエンジニア">
+          <option value="SREエンジニア">
+          <option value="ネットワークエンジニア">
+          <option value="セキュリティエンジニア">
+          <option value="データエンジニア">
+          <option value="データサイエンティスト">
+          <option value="機械学習エンジニア">
+          <option value="AIエンジニア">
+          <option value="データベース管理者（DBA）">
+          <option value="業務アプリケーションエンジニア">
+          <option value="ERPエンジニア">
+          <option value="QAエンジニア">
+          <option value="UI/UXデザイナー">
+          <option value="テックリード">
+          <option value="アーキテクト">
+          <option value="クラウドアーキテクト">
+          <option value="プロジェクトマネージャー">
+          <option value="プロダクトマネージャー">
+          <option value="スクラムマスター">
+          <option value="CTO">
+        </datalist>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalTargetRole')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveTargetRole()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- スキル追加/編集 -->
+<div class="modal-backdrop" id="modalSkill">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="skillModalTitle">スキル追加</h3>
+      <button class="modal-close" onclick="closeModal('modalSkill')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" id="skillNameGroup">
+        <label>スキル名</label>
+        <input type="text" id="skillNameInput" list="skillMasterList" placeholder="スキル名を入力または選択">
+        <datalist id="skillMasterList"></datalist>
+        <small id="skillCategoryHint" style="color:var(--gray-light);font-size:11px;margin-top:3px;display:block"></small>
+      </div>
+      <div class="form-group">
+        <label>レベル（1〜5）</label>
+        <div class="star-rating" id="starRating">
+          <button class="star-btn" data-val="1" onclick="setStars(1)">★</button>
+          <button class="star-btn" data-val="2" onclick="setStars(2)">★</button>
+          <button class="star-btn" data-val="3" onclick="setStars(3)">★</button>
+          <button class="star-btn" data-val="4" onclick="setStars(4)">★</button>
+          <button class="star-btn" data-val="5" onclick="setStars(5)">★</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalSkill')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveSkill()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 職務経歴 追加/編集 -->
+<div class="modal-backdrop" id="modalCareer">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="careerModalTitle">職務経歴 追加</h3>
+      <button class="modal-close" onclick="closeModal('modalCareer')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>プロジェクト名</label>
+        <input type="text" id="careerProjectName" placeholder="例：ECサイト開発">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>開始年月</label>
+          <input type="month" id="careerStart">
+        </div>
+        <div class="form-group">
+          <label>終了年月</label>
+          <input type="month" id="careerEnd">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>役割</label>
+        <input type="text" id="careerRole" placeholder="例：バックエンドエンジニア">
+      </div>
+      <div class="form-group">
+        <label>使用技術（カンマ区切り）</label>
+        <input type="text" id="careerTech" placeholder="例：Python, FastAPI, PostgreSQL">
+      </div>
+      <div class="form-group">
+        <label>業務概要</label>
+        <textarea id="careerDesc" placeholder="担当業務の概要を入力"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalCareer')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveCareer()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 職務経歴 詳細 -->
+<div class="modal-backdrop" id="modalCareerDetail">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>職務経歴 詳細</h3>
+      <button class="modal-close" onclick="closeModal('modalCareerDetail')">×</button>
+    </div>
+    <div class="modal-body" id="careerDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalCareerDetail')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 研修詳細 -->
+<div class="modal-backdrop" id="modalTrainingDetail">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>研修詳細</h3>
+      <button class="modal-close" onclick="closeModal('modalTrainingDetail')">×</button>
+    </div>
+    <div class="modal-body" id="trainingDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalTrainingDetail')">閉じる</button>
+      <button class="btn btn-primary" onclick="applyTraining()">申し込む</button>
+    </div>
+  </div>
+</div>
+
+<!-- 削除確認 -->
+<div class="modal-backdrop" id="modalConfirm">
+  <div class="modal" style="width:360px">
+    <div class="modal-header">
+      <h3>確認</h3>
+      <button class="modal-close" onclick="closeModal('modalConfirm')">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-text" id="confirmText">削除してよろしいですか？</p>
+      <p class="confirm-sub">この操作は取り消せません。</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalConfirm')">キャンセル</button>
+      <button class="btn btn-primary" id="confirmOkBtn">削除</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+{# サーバーから渡された初期データをJS変数として埋め込む #}
+<script>
+  window.__INIT_DATA__ = {
+    user_id:  {{ user.user_id if user else 1 }},
+    skills:   {{ skills_json | safe }},
+    careers:  {{ careers_json | safe }},
+    trainings: {{ trainings_json | safe }}
+  };
+</script>
+<script src="{{ url_for('static', path='js/dashboard.js') }}"></script>
+{% endblock %}

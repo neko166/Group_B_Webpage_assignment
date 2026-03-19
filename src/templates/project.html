@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='favicon.png') }}">
+  <title>案件検索</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/sidechat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/conditions.css') }}">
+    <style>
+        /* --- Layout --- */
+        .practice-container {
+            display: flex;
+            height: calc(100vh - 60px - 20px); /* ヘッダー・フッター分を引く */
+            overflow: hidden;
+            position: relative;
+        }
+        .main-area {
+            flex: 1;
+            padding: var(--space-3);
+            overflow-y: auto;
+            margin-right: var(--space-2);
+        }
+        .main-area > h2 {
+            margin-bottom: var(--space-2);
+        }
+
+        .project-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--space-3);
+        }
+
+        /* c-card内部のレイアウト用 */
+        .card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-1);
+        }
+        .card__category {
+            background-color: var(--accent-2);
+            color: var(--mono-400);
+            padding: 2px var(--space-1);
+            border-radius: var(--radius-s);
+            font-size: var(--fs-caption);
+            flex-shrink: 0;
+        }
+        .card__description {
+            font-size: var(--fs-data);
+            margin-bottom: var(--space-3);
+            flex-grow: 1;
+        }
+        .card__meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--fs-caption);
+            color: var(--mono-300);
+        }
+        .card__footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: var(--space-2);
+        }
+        .btn-detail {
+            font-size: var(--fs-caption);
+            padding: 4px 14px;
+            border: 1px solid var(--orange);
+            color: var(--orange);
+            background: transparent;
+            border-radius: var(--radius-s);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .btn-detail:hover {
+            background: var(--orange);
+            color: #fff;
+        }
+
+        /* 詳細モーダル */
+        #projectModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0,0,0,0.45);
+            align-items: center;
+            justify-content: center;
+        }
+        #projectModal.open { display: flex; }
+        .modal-box {
+            background: #fff;
+            border-radius: var(--radius-m);
+            width: min(540px, 92vw);
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: var(--space-4);
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        }
+        .modal-box__close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--mono-300);
+        }
+        .modal-box__title {
+            font-size: var(--fs-h3);
+            font-weight: bold;
+            margin-bottom: var(--space-1);
+            padding-right: 24px;
+        }
+        .modal-box__company {
+            display: inline-block;
+            background: var(--accent-2);
+            color: var(--mono-400);
+            font-size: var(--fs-caption);
+            padding: 2px 10px;
+            border-radius: var(--radius-s);
+            margin-bottom: var(--space-3);
+        }
+        .modal-box__section { margin-bottom: var(--space-3); }
+        .modal-box__label {
+            font-size: var(--fs-caption);
+            color: var(--mono-300);
+            margin-bottom: 4px;
+        }
+        .modal-box__value { font-size: var(--fs-data); }
+        .modal-box__match {
+            display: inline-block;
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--orange);
+        }
+    </style>
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <div class="practice-container">
+        <main id="main-area" class="main-area">
+            <h2>案件検索</h2>
+            <div id="initial-message">
+                <p>右側のチャットで、希望する案件の条件を設定してください。</p>
+            </div>
+
+            <div id="results-area" class="hidden">
+                <section class="c-card search-conditions-wrapper">
+                    <div id="filter-display-area">
+                        <span id="filter-placeholder" style="color:#bbb;font-size:13px;">右のチャットで検索条件を指定してください</span>
+                    </div>
+                </section>
+                <div id="project-cards-container">
+                    <!-- JSで案件カードを追加 -->
+                </div>
+            </div>
+        </main>
+
+        {% include "partials/chat_panel.html" %}
+    </div>
+
+    {% include "partials/footer.html" %}
+
+    <!-- 案件詳細モーダル -->
+    <div id="projectModal">
+        <div class="modal-box">
+            <button class="modal-box__close" id="modalClose">&times;</button>
+
+            <!-- ヘッダー -->
+            <div class="modal-box__title" id="modalTitle"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:var(--space-3);flex-wrap:wrap;">
+                <span class="modal-box__company" id="modalCompany"></span>
+                <span style="font-size:13px;color:var(--mono-300);" id="modalLocation"></span>
+            </div>
+
+            <!-- 適合率バー -->
+            <div style="background:#f5f5f5;border-radius:8px;padding:12px 16px;margin-bottom:var(--space-3);display:flex;align-items:center;gap:16px;">
+                <div>
+                    <div style="font-size:11px;color:var(--mono-300);margin-bottom:2px;">適合率</div>
+                    <div class="modal-box__match" id="modalMatchRate"></div>
+                </div>
+                <div style="flex:1;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+                    <div id="modalMatchBar" style="height:100%;background:var(--orange);border-radius:4px;transition:width 0.4s;"></div>
+                </div>
+                <div>
+                    <div style="font-size:11px;color:var(--mono-300);margin-bottom:2px;">単価</div>
+                    <div style="font-size:14px;font-weight:bold;color:#333;" id="modalReward"></div>
+                </div>
+            </div>
+
+            <!-- 基本情報グリッド -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:var(--space-3);">
+                <div class="modal-box__section" style="margin:0">
+                    <div class="modal-box__label">勤務形態</div>
+                    <div class="modal-box__value" id="modalEmployType"></div>
+                </div>
+                <div class="modal-box__section" style="margin:0">
+                    <div class="modal-box__label">稼働開始</div>
+                    <div class="modal-box__value" id="modalDuration"></div>
+                </div>
+                <div class="modal-box__section" style="margin:0">
+                    <div class="modal-box__label">チーム規模</div>
+                    <div class="modal-box__value" id="modalTeamSize"></div>
+                </div>
+                <div class="modal-box__section" style="margin:0">
+                    <div class="modal-box__label">面談回数</div>
+                    <div class="modal-box__value" id="modalInterview"></div>
+                </div>
+            </div>
+
+            <!-- 案件詳細 -->
+            <div class="modal-box__section">
+                <div class="modal-box__label">案件詳細</div>
+                <div class="modal-box__value" id="modalDescription" style="line-height:1.7;"></div>
+            </div>
+
+            <!-- スキル -->
+            <div class="modal-box__section">
+                <div class="modal-box__label">必須スキル</div>
+                <div id="modalSkillsTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
+            </div>
+            <div class="modal-box__section" id="modalPrefSection">
+                <div class="modal-box__label">歓迎スキル</div>
+                <div id="modalPrefTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
+            </div>
+
+            <!-- 業務フロー -->
+            <div class="modal-box__section" id="modalFlowSection">
+                <div class="modal-box__label">業務フロー</div>
+                <div id="modalFlow" style="margin-top:6px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', path='js/common.js') }}"></script>
+    <script src="{{ url_for('static', path='js/chat_manager.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Main Area UI Elements ---
+            const initialMessage = document.getElementById('initial-message');
+            const resultsArea = document.getElementById('results-area');
+            const filterDisplayArea = document.getElementById('filter-display-area');
+            const projectCardsContainer = document.getElementById('project-cards-container');
+
+            // --- State ---
+            let currentFilters = [];
+            let conversationId = '';
+            const currentUserId = 'user-' + Math.random().toString(36).substr(2, 9);
+            let chatApp;
+
+            // --- Data from Server ---
+            const PROJECTS = JSON.parse('{{ projects_data | tojson }}');
+            const USER_SKILLS = JSON.parse('{{ user_skills_data | tojson }}');
+            const USER = JSON.parse('{{ user | tojson }}');
+            console.log("【初期案件データ】", PROJECTS);
+            // 案件カードを表示する関数
+            const renderProjectCards = (projects) => {
+                projectCardsContainer.innerHTML = '';
+                
+                if (!projects || projects.length === 0) {
+                    projectCardsContainer.innerHTML = '<p>条件に一致する案件が見つかりませんでした。</p>';
+                    return;
+                }
+
+                projects.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'c-card';
+                    card.innerHTML = `
+                        <div class="card__header">
+                            <h3 class="c-card__title">${p.project_name}</h3>
+                            <span class="card__category">${p.company}</span>
+                        </div>
+                        <p class="card__description">${p.project_overview}</p>
+                        <div class="card__meta">
+                            <span>勤務形態: ${p.employ_type}</span>
+                            <span>適合率: ${p.match_rate}%</span>
+                        </div>
+                        ${p.required_skills ? `<div class="card__meta"><span>必須スキル: ${p.required_skills}</span></div>` : ''}
+                        ${p.project_duration ? `<div class="card__meta"><span>勤務期間: ${p.project_duration}</span></div>` : ''}
+                        <div class="card__footer">
+                            <button class="btn-detail">詳細</button>
+                        </div>
+                    `;
+                    card.querySelector('.btn-detail').addEventListener('click', () => openProjectModal(p));
+                    projectCardsContainer.appendChild(card);
+                });
+            };
+
+            // 検索結果表示のメイン処理
+            const displayProjectResults = (filters, results) => {
+                currentFilters = filters || [];
+
+                initialMessage.classList.add('hidden');
+                resultsArea.classList.remove('hidden');
+
+                // フィルタータグ表示（条件がある場合のみ表示）
+                filterDisplayArea.innerHTML = '';
+                if (currentFilters.length > 0) {
+                    filterDisplayArea.innerHTML = '<span class="condition-label mr-2">検索条件</span>';
+                } else {
+                    filterDisplayArea.innerHTML = '<span style="color:#bbb;font-size:13px;">右のチャットで検索条件を指定してください</span>';
+                }
+
+                currentFilters.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'filter-tag';
+                    tagEl.dataset.filter = tag;
+                    tagEl.innerHTML = `${tag}<button class="close-btn" title="削除">&times;</button>`;
+                    filterDisplayArea.appendChild(tagEl);
+                });
+
+                // 案件カード表示
+                renderProjectCards(results);
+            };
+
+            // フィルター削除イベント
+            filterDisplayArea.addEventListener('click', (e) => {
+                if (e.target.classList.contains('close-btn') || e.target.closest('.close-btn')) {
+                    const btn = e.target.classList.contains('close-btn') ? e.target : e.target.closest('.close-btn');
+                    const filterToRemove = btn.parentElement.dataset.filter;
+                    currentFilters = currentFilters.filter(f => f !== filterToRemove);
+
+                    // UIからタグを削除
+                    btn.parentElement.remove();
+
+                    // 既存の再検索ボタンがあれば削除
+                    const existingBtn = document.getElementById('research-btn');
+                    if (existingBtn) {
+                        existingBtn.remove();
+                    }
+
+                    // チャットにボットからのメッセージを追加
+                    if (chatApp && typeof chatApp.appendMessage === 'function') {
+                        chatApp.appendMessage('assistant', '検索条件が変更されました。下のボタンで再検索してください。');
+                    }
+
+                    // 再検索ボタンをチャットログ内に作成・表示
+                    const chatLog = document.querySelector('.chat-log') || document.getElementById('chat-log');
+                    if (chatLog) {
+                        const optionsDiv = document.createElement('div');
+                        optionsDiv.className = 'chat-options-container';
+
+                        const researchBtn = document.createElement('button');
+                        researchBtn.className = 'chat-option-btn';
+                        researchBtn.textContent = '再検索';
+
+                        researchBtn.onclick = () => {
+                            const chatInput = document.querySelector('.chat-input');
+                            const chatSendBtn = document.querySelector('.chat-send-btn');
+                            if (chatInput && chatSendBtn) {
+                                chatInput.value = '再検索してください。';
+                                chatSendBtn.click();
+                            }
+                            optionsDiv.remove();
+                        };
+
+                        optionsDiv.appendChild(researchBtn);
+                        chatLog.appendChild(optionsDiv);
+                        chatLog.scrollTop = chatLog.scrollHeight;
+                    }
+                }
+            });
+
+            // ページ読み込み時に全案件を表示
+            displayProjectResults([], PROJECTS);
+
+            // --- Chat Setup ---
+            const handleChatSubmit = async (message, appendMessage) => {
+                try {
+                    const payload = {
+                        message: message,
+                        conversation_id: conversationId,
+                        user_id: currentUserId,
+                        mode: "案件情報",
+                        current_conditions: currentFilters.join(','),
+                        project_sessions: JSON.stringify(PROJECTS),
+                        user_skills: JSON.stringify(USER_SKILLS),
+                        user_info: JSON.stringify(USER)
+                    };
+
+                    const data = await sendToDify(payload);
+
+                    // 会話ID更新
+                    if (data.conversation_id) conversationId = data.conversation_id;
+                    
+                    const parsedData = parseDifyResponse(data.answer);
+
+                    // 1. メッセージ表示
+                    appendMessage('assistant', parsedData.message || data.answer);
+
+                    // 2. 検索結果の更新
+                    if (parsedData.filtered_results && Array.isArray(parsedData.filtered_results)) {
+                        displayProjectResults(parsedData.conditions, parsedData.filtered_results);
+                    } else if (parsedData.conditions && Array.isArray(parsedData.conditions)) {
+                        displayProjectResults(parsedData.conditions, []); 
+                    }
+
+                    // 3. 提案ボタンの表示
+                    displayOptions(parsedData.options);
+
+                } catch (error) {
+                    console.error("【チャットエラー詳細】:", error);
+                    appendMessage('assistant', 'すみません、エラーが発生しました。もう一度お試しください。');
+                }
+            };
+
+            // --- 詳細モーダル ---
+            const modal = document.getElementById('projectModal');
+            document.getElementById('modalClose').addEventListener('click', () => modal.classList.remove('open'));
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+
+            const makeSkillTags = (containerId, skillStr, color) => {
+                const el = document.getElementById(containerId);
+                el.innerHTML = '';
+                if (!skillStr) return;
+                skillStr.split(',').forEach(s => {
+                    const t = s.trim();
+                    if (!t) return;
+                    const span = document.createElement('span');
+                    span.textContent = t;
+                    span.style.cssText = `background:${color};color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;`;
+                    el.appendChild(span);
+                });
+            };
+
+            const makeFlowSteps = (containerId, flowStr) => {
+                const el = document.getElementById(containerId);
+                el.innerHTML = '';
+                if (!flowStr) return;
+                const steps = flowStr.split('→').map(s => s.trim()).filter(Boolean);
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:4px;';
+                steps.forEach((s, i) => {
+                    const step = document.createElement('span');
+                    step.textContent = s;
+                    step.style.cssText = 'background:#E8EAF6;color:#3B5BDB;font-size:11px;padding:3px 10px;border-radius:12px;white-space:nowrap;';
+                    wrap.appendChild(step);
+                    if (i < steps.length - 1) {
+                        const arr = document.createElement('span');
+                        arr.textContent = '→';
+                        arr.style.cssText = 'color:#aaa;font-size:11px;';
+                        wrap.appendChild(arr);
+                    }
+                });
+                el.appendChild(wrap);
+            };
+
+            const openProjectModal = (p) => {
+                document.getElementById('modalTitle').textContent      = p.project_name;
+                document.getElementById('modalCompany').textContent    = p.company;
+                document.getElementById('modalLocation').textContent   = p.location ? `📍 ${p.location}` : '';
+                document.getElementById('modalMatchRate').textContent  = `${p.match_rate}%`;
+                document.getElementById('modalMatchBar').style.width   = `${Math.min(p.match_rate, 100)}%`;
+                document.getElementById('modalReward').textContent     = p.reward || '要相談';
+                document.getElementById('modalEmployType').textContent = p.employ_type || '—';
+                document.getElementById('modalDuration').textContent   = p.project_duration || '—';
+                document.getElementById('modalTeamSize').textContent   = p.team_size || '—';
+                document.getElementById('modalInterview').textContent  = p.interview_count || '—';
+                document.getElementById('modalDescription').textContent = p.description || p.project_overview || '—';
+                makeSkillTags('modalSkillsTags', p.required_skills, '#3B5BDB');
+                makeSkillTags('modalPrefTags', p.preferred_skills, '#2E7D32');
+                document.getElementById('modalPrefSection').style.display = p.preferred_skills ? '' : 'none';
+                makeFlowSteps('modalFlow', p.work_process);
+                document.getElementById('modalFlowSection').style.display = p.work_process ? '' : 'none';
+                modal.classList.add('open');
+            };
+
+            chatApp = setupChat({
+                pageType: 'project',
+                handleSubmit: handleChatSubmit,
+                initialMessage: 'こんにちは。ご希望のスキルや条件を教えていただければ、最適な案件を検索します。'
+            });
+        });
+    </script>
+</body>
+</html>
